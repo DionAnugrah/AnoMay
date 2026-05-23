@@ -7,6 +7,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\LaporJualanController;
 use App\Http\Controllers\AiInsightController;
 use App\Http\Controllers\StockAllocationController;
+use App\Http\Controllers\BossDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,9 +75,9 @@ Route::middleware('auth.json')->group(function () {
     */
     Route::middleware('role:boss')->prefix('boss')->name('boss.')->group(function () {
         Route::get('/dashboard',   fn () => response()->json(['area' => 'Boss Dashboard']))->name('dashboard');
-        Route::get('/sales',       fn () => response()->json(['area' => 'Data Penjualan']))->name('sales');
-        Route::get('/performance', fn () => response()->json(['area' => 'Performa Penjual']))->name('performance');
-        Route::get('/profit',      fn () => response()->json(['area' => 'Laporan Keuntungan']))->name('profit');
+        Route::get('/sales',       [BossDashboardController::class, 'salesSummary'])->name('sales');
+        Route::get('/performance', [BossDashboardController::class, 'performanceSummary'])->name('performance');
+        Route::get('/profit',      [BossDashboardController::class, 'profitSummary'])->name('profit');
         Route::get('/bonus',       fn () => response()->json(['area' => 'Rekomendasi Bonus']))->name('bonus');
         Route::get('/ai/insight/harian',  [AiInsightController::class, 'harianInsight'])->name('ai.harian');
         Route::get('/ai/insight/bulanan', [AiInsightController::class, 'bulananInsight'])->name('ai.bulanan');
