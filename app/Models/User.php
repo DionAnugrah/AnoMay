@@ -12,19 +12,54 @@ class User extends Authenticatable
     protected $guarded = ['id'];
 
     protected $hidden = [
-        'password', 'remember_token',
+        'password',
+        'remember_token',
     ];
 
-    // Relasi ke tabel lain
-    public function stockAllocations() {
+    /**
+     * Ganti field 'email' (default Laravel) dengan 'username'
+     * agar Auth::attempt(['username' => ..., 'password' => ...]) bisa jalan.
+     */
+    public function getAuthIdentifierName(): string
+    {
+        return 'username';
+    }
+
+    // -------------------------------------------------------------------------
+    // Relasi
+    // -------------------------------------------------------------------------
+
+    public function stockAllocations()
+    {
         return $this->hasMany(StockAllocation::class);
     }
-    
-    public function dailyReports() {
+
+    public function dailyReports()
+    {
         return $this->hasMany(DailyReport::class);
     }
-    
-    public function locations() {
+
+    public function locations()
+    {
         return $this->hasMany(Location::class);
+    }
+
+    // -------------------------------------------------------------------------
+    // Helper role — opsional, berguna di controller/blade nanti
+    // -------------------------------------------------------------------------
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isBoss(): bool
+    {
+        return $this->role === 'boss';
+    }
+
+    public function isPenjual(): bool
+    {
+        return $this->role === 'penjual';
     }
 }
