@@ -26,9 +26,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // hapus kalau sudah ada frontend nya
         $middleware->validateCsrfTokens(except: [
-            'login',  // Mengabaikan CSRF untuk POST /login
-            'logout', // Mengabaikan CSRF untuk POST /logout (jika rute logout juga di web.php)
-            'admin/*'
+            'login',
+            'logout',
+            'admin/*',
+            'penjual/*',  // ← tambah ini
+            'boss/*',     // ← tambah ini
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

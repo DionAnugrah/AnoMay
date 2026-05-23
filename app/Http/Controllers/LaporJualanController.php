@@ -75,7 +75,7 @@ class LaporJualanController extends Controller
      */
     public function riwayat()
     {
-        $data = DailyReport::where('user_id', Auth::id())
+        $data = DailyReport::where('user_id', Auth::user()->id)
                     ->orderBy('date', 'desc')
                     ->get();
 

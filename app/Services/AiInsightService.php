@@ -1,132 +1,89 @@
 <?php
+// app/Services/AiInsightService.php
 
-namespace App\Http\Controllers;
+namespace App\Services;
 
-use App\Models\DailyReport;
-use App\Services\AiInsightService;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
-class AiInsightController extends Controller
+class AiInsightService
 {
-    public function __construct(protected AiInsightService $ai) {}
-
-    // =========================================================
-    // ANALISA HARIAN
-    // =========================================================
-
     /**
-     * Boss/Admin minta analisa AI untuk penjualan hari tertentu.
+     * Kirim prompt ke Gemini dan ambil balasannya.
      */
-    public function harianInsight(Request $request)
+        public function analisa(string $prompt): string
     {
-        $request->validate([
-            'date' => 'sometimes|date',
-        ]);
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post(
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='
+            . env('GEMINI_API_KEY'),
+            [
+                'contents' => [
+                    ['parts' => [['text' => $prompt]]]
+                ]
+            ]
+        );
 
-        $date  = $request->input('date', now()->toDateString());
-        $rekap = $this->buildRekapHarian($date);
-
-        if ($rekap['total_qty_sold'] == 0) {
-            return response()->json([
-                'message' => 'Belum ada data jualan untuk tanggal ini.',
-                'date'    => $date,
-            ], 404);
+        if ($response->failed()) {
+            return 'Error ' . $response->status() . ': ' . $response->body();
         }
 
-        $prompt  = $this->ai->buildPromptHarian($rekap);
-        $analisa = $this->ai->analisa($prompt);
-
-        return response()->json([
-            'date'       => $date,
-            'rekap'      => $rekap,
-            'insight_ai' => $analisa,
-        ]);
+        return $response->json('candidates.0.content.parts.0.text')
+            ?? 'AI tidak menghasilkan respons.';
     }
 
-    // =========================================================
-    // ANALISA BULANAN
-    // =========================================================
-
     /**
-     * Boss/Admin minta analisa AI untuk penjualan bulan tertentu.
+     * Bangun prompt harian dari data rekap.
      */
-    public function bulananInsight(Request $request)
+    public function buildPromptHarian(array $rekap): string
     {
-        $request->validate([
-            'bulan' => 'sometimes|integer|min:1|max:12',
-            'tahun' => 'sometimes|integer|min:2000',
-        ]);
-
-        $bulan = $request->input('bulan', now()->month);
-        $tahun = $request->input('tahun', now()->year);
-        $rekap = $this->buildRekapBulanan($bulan, $tahun);
-
-        if ($rekap['total_qty_sold'] == 0) {
-            return response()->json([
-                'message' => 'Belum ada data jualan untuk periode ini.',
-                'periode' => "{$bulan}/{$tahun}",
-            ], 404);
+        $detail = '';
+        foreach ($rekap['per_penjual'] as $item) {
+            $detail .= "- {$item['nama']}: terjual {$item['qty_sold']} pcs,"
+                     . " setoran Rp {$item['total_deposit']}\n";
         }
 
-        $prompt  = $this->ai->buildPromptBulanan($rekap);
-        $analisa = $this->ai->analisa($prompt);
+        return "
+            Kamu adalah analis bisnis untuk usaha somay keliling.
+            Berikut rekap penjualan hari ini ({$rekap['date']}):
 
-        return response()->json([
-            'periode'    => "{$bulan}/{$tahun}",
-            'rekap'      => $rekap,
-            'insight_ai' => $analisa,
-        ]);
-    }
+            Total seluruh penjual  : {$rekap['total_qty_sold']} pcs
+            Total setoran hari ini : Rp {$rekap['total_deposit']}
 
-    // =========================================================
-    // PRIVATE: Builder Rekap Data
-    // =========================================================
+            Detail per penjual:
+            {$detail}
 
-    /**
-     * Kumpulkan & susun data harian dari tabel daily_reports.
-     */
-    private function buildRekapHarian(string $date): array
-    {
-        $reports = DailyReport::with('user')
-                    ->where('date', $date)
-                    ->where('status', 'accepted') // hanya yang sudah dikonfirmasi admin
-                    ->get();
+            Berikan:
+            1. Analisa singkat performa hari ini (2-3 kalimat)
+            2. Prediksi jualan besok berdasarkan tren
+            3. Peringatan jika ada penjual yang performanya rendah
+            4. Saran actionable untuk Owner
 
-        $perPenjual = $reports->map(fn($r) => [
-            'nama'          => $r->user->name,
-            'qty_sold'      => $r->qty_sold,
-            'total_deposit' => number_format($r->total_deposit, 0, ',', '.'),
-        ])->toArray();
-
-        return [
-            'date'           => $date,
-            'total_qty_sold' => $reports->sum('qty_sold'),
-            'total_deposit'  => number_format($reports->sum('total_deposit'), 0, ',', '.'),
-            'per_penjual'    => $perPenjual,
-        ];
+            Jawab dalam Bahasa Indonesia, singkat dan jelas.
+        ";
     }
 
     /**
-     * Kumpulkan & susun data bulanan dari tabel daily_reports.
+     * Bangun prompt bulanan dari data rekap.
      */
-    private function buildRekapBulanan(int $bulan, int $tahun): array
+    public function buildPromptBulanan(array $rekap): string
     {
-        $reports = DailyReport::whereMonth('date', $bulan)
-                    ->whereYear('date', $tahun)
-                    ->where('status', 'accepted')
-                    ->get();
+        return "
+            Kamu adalah analis bisnis untuk usaha somay keliling.
+            Berikut rekap penjualan bulan {$rekap['bulan']}/{$rekap['tahun']}:
 
-        $hariAktif  = $reports->groupBy('date')->count();
-        $totalSold  = $reports->sum('qty_sold');
-        $rataRata   = $hariAktif > 0 ? round($totalSold / $hariAktif) : 0;
+            Total terjual  : {$rekap['total_qty_sold']} pcs
+            Total setoran  : Rp {$rekap['total_deposit']}
+            Hari aktif     : {$rekap['hari_aktif']} hari
+            Rata-rata/hari : {$rekap['rata_rata']} pcs
 
-        return [
-            'bulan'          => $bulan,
-            'tahun'          => $tahun,
-            'total_qty_sold' => $totalSold,
-            'total_deposit'  => number_format($reports->sum('total_deposit'), 0, ',', '.'),
-            'hari_aktif'     => $hariAktif,
-            'rata_rata'      => $rataRata,
-        ];
+            Berikan:
+            1. Analisa performa bulan ini
+            2. Tren penjualan (naik/turun dibanding ekspektasi)
+            3. Rekomendasi strategi untuk bulan depan
+            4. Penjual yang perlu diperhatikan
+
+            Jawab dalam Bahasa Indonesia, singkat dan jelas.
+        ";
     }
 }
