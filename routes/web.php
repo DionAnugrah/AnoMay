@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\LaporJualanController;
+use App\Http\Controllers\AiInsightController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,6 +46,17 @@ Route::middleware('auth.json')->group(function () {
         Route::post('/products',             [ProductController::class, 'store'])->name('products.store');
         Route::put('/products/{product}',    [ProductController::class, 'update'])->name('products.update');
         Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+        //Edit dan Hapus Laporan Penjualan
+        Route::get('/laporan',                      [LaporJualanController::class, 'indexAdmin'])->name('laporan.index');
+        Route::get('/laporan/{report}',             [LaporJualanController::class, 'showAdmin'])->name('laporan.show');
+        Route::put('/laporan/{report}',             [LaporJualanController::class, 'update'])->name('laporan.update');
+        Route::patch('/laporan/{report}/status',    [LaporJualanController::class, 'updateStatus'])->name('laporan.status');
+        Route::delete('/laporan/{report}',          [LaporJualanController::class, 'destroy'])->name('laporan.destroy');
+
+        //Laporan Analisis AI
+        Route::get('/ai/insight/harian',  [AiInsightController::class, 'harianInsight'])->name('ai.harian');
+        Route::get('/ai/insight/bulanan', [AiInsightController::class, 'bulananInsight'])->name('ai.bulanan');
     });
 
     /*
@@ -57,6 +70,8 @@ Route::middleware('auth.json')->group(function () {
         Route::get('/performance', fn () => response()->json(['area' => 'Performa Penjual']))->name('performance');
         Route::get('/profit',      fn () => response()->json(['area' => 'Laporan Keuntungan']))->name('profit');
         Route::get('/bonus',       fn () => response()->json(['area' => 'Rekomendasi Bonus']))->name('bonus');
+        Route::get('/ai/insight/harian',  [AiInsightController::class, 'harianInsight'])->name('ai.harian');
+        Route::get('/ai/insight/bulanan', [AiInsightController::class, 'bulananInsight'])->name('ai.bulanan');
     });
 
     /*
@@ -70,5 +85,7 @@ Route::middleware('auth.json')->group(function () {
         Route::get('/income',       fn () => response()->json(['area' => 'Penghasilan Harian']))->name('income');
         Route::post('/transaction', fn () => response()->json(['area' => 'Input Transaksi']))->name('transaction.store');
         Route::post('/location',    fn () => response()->json(['area' => 'Update Lokasi']))->name('location.update');
+        Route::post('/lapor-jualan',   [LaporJualanController::class, 'store'])->name('laporan.store');
+        Route::get('/riwayat-jualan',  [LaporJualanController::class, 'riwayat'])->name('laporan.riwayat');
     });
 });
