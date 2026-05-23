@@ -16,53 +16,47 @@ class LaporJualanController extends Controller
     // =========================================================
 
     /**
-     * Penjual simpan laporan jualan hari ini.
+     * Penjual simpan laporan jualan — satu laporan per alokasi stok.
      */
     public function store(LaporJualanRequest $request)
     {
         $penjual = Auth::user();
-        $alokasi = StockAllocation::findOrFail($request->stock_allocation_id);
-        $produk  = $alokasi->product;
+        $alokasi = StockAllocation::with('product')->findOrFail($request->stock_allocation_id);
 
         if ($alokasi->user_id !== $penjual->id) {
-            return response()->json([
-                'message' => 'Alokasi stok ini bukan milik Anda.'
-            ], 403);
+            return response()->json(['message' => 'Alokasi stok ini bukan milik Anda.'], 403);
         }
 
         if ($request->qty_sold > $alokasi->qty_given) {
             return response()->json([
-                'message'     => 'Jumlah terjual melebihi stok yang dibawa hari ini.',
+                'message'     => 'Jumlah terjual melebihi stok yang dibawa.',
                 'stok_dibawa' => $alokasi->qty_given,
             ], 422);
         }
 
-        $sudahLapor = DailyReport::where('user_id', $penjual->id)
-                        ->where('date', $alokasi->date)
-                        ->exists();
-
+        // Cek duplikat per alokasi (bukan per hari), supaya multi-produk bisa
+        $sudahLapor = DailyReport::where('stock_allocation_id', $alokasi->id)->exists();
         if ($sudahLapor) {
-            return response()->json([
-                'message' => 'Kamu sudah melaporkan jualan untuk hari ini.'
-            ], 422);
+            return response()->json(['message' => 'Produk ini sudah dilaporkan untuk tanggal tersebut.'], 422);
         }
 
-        // KALKULASI OTOMATIS
         $qtySold      = $request->qty_sold;
         $qtyReturned  = $alokasi->qty_given - $qtySold;
-        $totalDeposit = $qtySold * $produk->price;
+        $totalDeposit = $qtySold * $alokasi->product->price;
 
         $laporan = DailyReport::create([
-            'user_id'       => $penjual->id,
-            'date'          => $alokasi->date,
-            'qty_sold'      => $qtySold,
-            'qty_returned'  => $qtyReturned,
-            'total_deposit' => $totalDeposit,
-            'status'        => 'pending',
+            'user_id'             => $penjual->id,
+            'stock_allocation_id' => $alokasi->id,
+            'date'                => $alokasi->date,
+            'qty_sold'            => $qtySold,
+            'qty_returned'        => $qtyReturned,
+            'total_deposit'       => $totalDeposit,
+            'status'              => 'pending',
         ]);
 
         return response()->json([
-            'message'       => 'Laporan jualan berhasil disimpan.',
+            'message'       => 'Laporan berhasil disimpan.',
+            'produk'        => $alokasi->product->name,
             'qty_sold'      => $qtySold,
             'qty_returned'  => $qtyReturned,
             'total_deposit' => 'Rp ' . number_format($totalDeposit, 0, ',', '.'),
