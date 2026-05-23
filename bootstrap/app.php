@@ -10,9 +10,20 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        //
+    ->withMiddleware(function (Middleware $middleware) {
+        /*
+        |----------------------------------------------------------------------
+        | Alias Middleware Custom
+        |----------------------------------------------------------------------
+        | auth.json → ganti redirect login bawaan Laravel dengan JSON 401
+        | role       → cek role user, pakai: middleware('role:admin')
+        |----------------------------------------------------------------------
+        */
+        $middleware->alias([
+            'auth.json' => \App\Http\Middleware\EnsureAuthenticated::class,
+            'role'      => \App\Http\Middleware\CheckRole::class,
+        ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
