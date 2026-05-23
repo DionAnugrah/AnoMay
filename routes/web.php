@@ -2,10 +2,12 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\ProductController;
 
 /*
 |--------------------------------------------------------------------------
-| Auth Routes (publik, tidak perlu login)
+| Auth Routes (publik)
 |--------------------------------------------------------------------------
 */
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -17,41 +19,49 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 */
 Route::middleware('auth.json')->group(function () {
 
-    // Logout & info user sendiri (semua role boleh)
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/me', [AuthController::class, 'me'])->name('me');
 
     /*
     |----------------------------------------------------------------------
-    | ADMIN
-    | Kelola user, sistem, produk, melihat semua data
+    | ADMIN — Kelola user, produk, melihat semua data
     |----------------------------------------------------------------------
     */
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        // Placeholder — isi dengan controller yang sesuai nanti
+
         Route::get('/dashboard', fn () => response()->json(['area' => 'Admin Dashboard']))->name('dashboard');
-        Route::get('/users',     fn () => response()->json(['area' => 'Kelola User']))->name('users.index');
-        Route::get('/products',  fn () => response()->json(['area' => 'Kelola Produk']))->name('products.index');
+
+        // CRUD Penjual
+        Route::get('/users',           [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}',    [UserController::class, 'show'])->name('users.show');
+        Route::post('/users',          [UserController::class, 'store'])->name('users.store');
+        Route::put('/users/{user}',    [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+        // CRUD Produk
+        Route::get('/products',              [ProductController::class, 'index'])->name('products.index');
+        Route::get('/products/{product}',    [ProductController::class, 'show'])->name('products.show');
+        Route::post('/products',             [ProductController::class, 'store'])->name('products.store');
+        Route::put('/products/{product}',    [ProductController::class, 'update'])->name('products.update');
+        Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
     });
 
     /*
     |----------------------------------------------------------------------
-    | BOSS
-    | Melihat penjualan, performa penjual, laporan, rekomendasi bonus
+    | BOSS — Melihat penjualan, performa, laporan, bonus
     |----------------------------------------------------------------------
     */
     Route::middleware('role:boss')->prefix('boss')->name('boss.')->group(function () {
-        Route::get('/dashboard',    fn () => response()->json(['area' => 'Boss Dashboard']))->name('dashboard');
-        Route::get('/sales',        fn () => response()->json(['area' => 'Data Penjualan']))->name('sales');
-        Route::get('/performance',  fn () => response()->json(['area' => 'Performa Penjual']))->name('performance');
-        Route::get('/profit',       fn () => response()->json(['area' => 'Laporan Keuntungan']))->name('profit');
-        Route::get('/bonus',        fn () => response()->json(['area' => 'Rekomendasi Bonus']))->name('bonus');
+        Route::get('/dashboard',   fn () => response()->json(['area' => 'Boss Dashboard']))->name('dashboard');
+        Route::get('/sales',       fn () => response()->json(['area' => 'Data Penjualan']))->name('sales');
+        Route::get('/performance', fn () => response()->json(['area' => 'Performa Penjual']))->name('performance');
+        Route::get('/profit',      fn () => response()->json(['area' => 'Laporan Keuntungan']))->name('profit');
+        Route::get('/bonus',       fn () => response()->json(['area' => 'Rekomendasi Bonus']))->name('bonus');
     });
 
     /*
     |----------------------------------------------------------------------
-    | PENJUAL
-    | Input transaksi, update lokasi, stok sendiri, penghasilan harian
+    | PENJUAL — Transaksi, lokasi, stok, penghasilan
     |----------------------------------------------------------------------
     */
     Route::middleware('role:penjual')->prefix('penjual')->name('penjual.')->group(function () {
@@ -61,11 +71,4 @@ Route::middleware('auth.json')->group(function () {
         Route::post('/transaction', fn () => response()->json(['area' => 'Input Transaksi']))->name('transaction.store');
         Route::post('/location',    fn () => response()->json(['area' => 'Update Lokasi']))->name('location.update');
     });
-
-    /*
-    |----------------------------------------------------------------------
-    | ADMIN bisa akses semua area di atas juga
-    | Tambahkan 'admin' ke middleware role kalau perlu cross-access
-    |----------------------------------------------------------------------
-    */
 });
