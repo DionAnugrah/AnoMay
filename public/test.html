@@ -163,10 +163,12 @@ function buildUI() {
       { label: '📦 Kelola Produk', panel: 'panel-products' },
       { label: '🌅 Alokasi Stok', panel: 'panel-stock' },
       { label: '📋 Laporan Jualan', panel: 'panel-laporan-admin' },
+      { label: '🤖 Insight AI', panel: 'panel-ai' },
     ],
     boss: [
       { section: 'Boss' },
       { label: '📋 Semua Laporan', panel: 'panel-laporan-admin' },
+      { label: '🤖 Insight AI', panel: 'panel-ai' },
     ],
     penjual: [
       { section: 'Penjual' },
@@ -194,9 +196,9 @@ function buildPanels(role) {
   let html = '';
 
   if (role === 'admin') {
-    html += panelUsers() + panelProducts() + panelStock() + panelLaporanAdmin();
+    html += panelUsers() + panelProducts() + panelStock() + panelLaporanAdmin() + panelAi();
   } else if (role === 'boss') {
-    html += panelLaporanAdmin();
+    html += panelLaporanAdmin() + panelAi();
   } else if (role === 'penjual') {
     html += panelLapor() + panelRiwayat();
   }
@@ -617,6 +619,119 @@ async function loadRiwayat() {
       <td><span class="badge badge-${l.status}">${l.status}</span></td>
     </tr>`).join('');
   el.innerHTML = `<table><thead><tr><th>Tanggal</th><th>Terjual</th><th>Sisa</th><th>Setoran</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ─── PANEL: AI INSIGHT ───────────────────────────────────────────────────────
+function panelAi() {
+  return `
+  <div class="panel" id="panel-ai">
+    <h2>🤖 Insight AI</h2>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="margin-bottom:12px;font-size:15px">📅 Analisa Harian</h3>
+        <label>Tanggal</label>
+        <input id="ai-date" type="date" value="${today()}">
+        <button class="btn btn-primary" onclick="getAiHarian()" id="btn-ai-harian">Analisa Hari Ini</button>
+        <div id="ai-harian-result" style="margin-top:16px;display:none">
+          <div id="ai-harian-rekap" style="margin-bottom:12px"></div>
+          <div id="ai-harian-text" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap;color:#1e293b"></div>
+        </div>
+        <div id="ai-harian-error" style="color:#ef4444;font-size:13px;margin-top:10px;display:none"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:12px;font-size:15px">📆 Analisa Bulanan</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <label>Bulan</label>
+            <select id="ai-bulan">
+              ${[['Januari',1],['Februari',2],['Maret',3],['April',4],['Mei',5],['Juni',6],
+                 ['Juli',7],['Agustus',8],['September',9],['Oktober',10],['November',11],['Desember',12]]
+                .map(([n,v]) => `<option value="${v}" ${v === new Date().getMonth()+1 ? 'selected' : ''}>${n}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label>Tahun</label>
+            <input id="ai-tahun" type="number" value="${new Date().getFullYear()}" min="2020" max="2099">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="getAiBulanan()" id="btn-ai-bulanan">Analisa Bulan Ini</button>
+        <div id="ai-bulanan-result" style="margin-top:16px;display:none">
+          <div id="ai-bulanan-rekap" style="margin-bottom:12px"></div>
+          <div id="ai-bulanan-text" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap;color:#1e293b"></div>
+        </div>
+        <div id="ai-bulanan-error" style="color:#ef4444;font-size:13px;margin-top:10px;display:none"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function rekapBadge(label, value) {
+  return `<span style="display:inline-block;background:#eff6ff;color:#1d4ed8;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;margin-right:6px;margin-bottom:6px">${label}: ${value}</span>`;
+}
+
+async function getAiHarian() {
+  const date = document.getElementById('ai-date').value;
+  const btn  = document.getElementById('btn-ai-harian');
+  const res  = document.getElementById('ai-harian-result');
+  const err  = document.getElementById('ai-harian-error');
+
+  btn.disabled = true; btn.textContent = '⏳ Menganalisa...';
+  res.style.display = 'none'; err.style.display = 'none';
+
+  const prefix = currentUser.role === 'admin' ? 'admin' : 'boss';
+  const r = await api('GET', `/${prefix}/ai/insight/harian?date=${date}`);
+
+  btn.disabled = false; btn.textContent = 'Analisa Hari Ini';
+
+  if (!r.ok) {
+    err.style.display = 'block';
+    err.textContent = r.data.message ?? 'Terjadi kesalahan.';
+    return;
+  }
+
+  const rekap = r.data.rekap;
+  document.getElementById('ai-harian-rekap').innerHTML =
+    rekapBadge('Tanggal', rekap.date) +
+    rekapBadge('Total Terjual', rekap.total_qty_sold + ' pcs') +
+    rekapBadge('Total Setoran', 'Rp ' + rekap.total_deposit);
+
+  document.getElementById('ai-harian-text').textContent = r.data.insight_ai;
+  res.style.display = 'block';
+}
+
+async function getAiBulanan() {
+  const bulan = document.getElementById('ai-bulan').value;
+  const tahun = document.getElementById('ai-tahun').value;
+  const btn   = document.getElementById('btn-ai-bulanan');
+  const res   = document.getElementById('ai-bulanan-result');
+  const err   = document.getElementById('ai-bulanan-error');
+
+  btn.disabled = true; btn.textContent = '⏳ Menganalisa...';
+  res.style.display = 'none'; err.style.display = 'none';
+
+  const prefix = currentUser.role === 'admin' ? 'admin' : 'boss';
+  const r = await api('GET', `/${prefix}/ai/insight/bulanan?bulan=${bulan}&tahun=${tahun}`);
+
+  btn.disabled = false; btn.textContent = 'Analisa Bulan Ini';
+
+  if (!r.ok) {
+    err.style.display = 'block';
+    err.textContent = r.data.message ?? 'Terjadi kesalahan.';
+    return;
+  }
+
+  const rekap = r.data.rekap;
+  document.getElementById('ai-bulanan-rekap').innerHTML =
+    rekapBadge('Periode', rekap.bulan + '/' + rekap.tahun) +
+    rekapBadge('Total Terjual', rekap.total_qty_sold + ' pcs') +
+    rekapBadge('Total Setoran', 'Rp ' + rekap.total_deposit) +
+    rekapBadge('Hari Aktif', rekap.hari_aktif + ' hari') +
+    rekapBadge('Rata-rata/hari', rekap.rata_rata + ' pcs');
+
+  document.getElementById('ai-bulanan-text').textContent = r.data.insight_ai;
+  res.style.display = 'block';
 }
 
 // ─── ENTER KEY on login ───────────────────────────────────────────────────────
