@@ -6,12 +6,14 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\LaporJualanController;
 use App\Http\Controllers\AiInsightController;
+use App\Http\Controllers\StockAllocationController;
 
 /*
 |--------------------------------------------------------------------------
 | Auth Routes (publik)
 |--------------------------------------------------------------------------
 */
+Route::get('/', fn () => redirect('/test.html'));
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 /*
@@ -46,6 +48,12 @@ Route::middleware('auth.json')->group(function () {
         Route::post('/products',             [ProductController::class, 'store'])->name('products.store');
         Route::put('/products/{product}',    [ProductController::class, 'update'])->name('products.update');
         Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+        // Alokasi Stok Pagi
+        Route::get('/stock-allocations',                    [StockAllocationController::class, 'index'])->name('stock.index');
+        Route::post('/stock-allocations',                   [StockAllocationController::class, 'store'])->name('stock.store');
+        Route::put('/stock-allocations/{stockAllocation}',  [StockAllocationController::class, 'update'])->name('stock.update');
+        Route::delete('/stock-allocations/{stockAllocation}', [StockAllocationController::class, 'destroy'])->name('stock.destroy');
 
         //Edit dan Hapus Laporan Penjualan
         Route::get('/laporan',                      [LaporJualanController::class, 'indexAdmin'])->name('laporan.index');
@@ -87,5 +95,6 @@ Route::middleware('auth.json')->group(function () {
         Route::post('/location',    fn () => response()->json(['area' => 'Update Lokasi']))->name('location.update');
         Route::post('/lapor-jualan',   [LaporJualanController::class, 'store'])->name('laporan.store');
         Route::get('/riwayat-jualan',  [LaporJualanController::class, 'riwayat'])->name('laporan.riwayat');
+        Route::get('/my-stock',        [StockAllocationController::class, 'myStock'])->name('stock.mine');
     });
 });

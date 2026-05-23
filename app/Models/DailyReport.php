@@ -11,4 +11,8 @@ class DailyReport extends Model
     public function user() {
         return $this->belongsTo(User::class);
     }
+
+    public function stockAllocation() {
+        return $this->belongsTo(StockAllocation::class);
+    }
 }

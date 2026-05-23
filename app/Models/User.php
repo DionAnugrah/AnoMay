@@ -17,12 +17,13 @@ class User extends Authenticatable
     ];
 
     /**
-     * Ganti field 'email' (default Laravel) dengan 'username'
-     * agar Auth::attempt(['username' => ..., 'password' => ...]) bisa jalan.
+     * Override field login dari 'email' ke 'username'.
+     * getAuthIdentifierName tetap 'id' agar session menyimpan ID integer,
+     * bukan string username.
      */
-    public function getAuthIdentifierName(): string
+    public function getAuthPassword(): string
     {
-        return 'username';
+        return $this->password;
     }
 
     // -------------------------------------------------------------------------

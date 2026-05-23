@@ -97,7 +97,7 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         // Cegah admin hapus dirinya sendiri
-        if ($user->id === auth()->id()) {
+        if ($user->id === auth()->user()->id) {
             return response()->json([
                 'message' => 'Tidak bisa menghapus akun sendiri.',
             ], 422);
