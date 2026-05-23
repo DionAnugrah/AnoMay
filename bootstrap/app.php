@@ -23,6 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.json' => \App\Http\Middleware\EnsureAuthenticated::class,
             'role'      => \App\Http\Middleware\CheckRole::class,
         ]);
+
+        // hapus kalau sudah ada frontend nya
+        $middleware->validateCsrfTokens(except: [
+            'login',  // Mengabaikan CSRF untuk POST /login
+            'logout', // Mengabaikan CSRF untuk POST /logout (jika rute logout juga di web.php)
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
