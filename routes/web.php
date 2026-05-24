@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProductController;
@@ -8,29 +10,22 @@ use App\Http\Controllers\LaporJualanController;
 use App\Http\Controllers\AiInsightController;
 use App\Http\Controllers\StockAllocationController;
 use App\Http\Controllers\BossDashboardController;
+use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
-| 1. RUTE TAMPILAN UI (FRONTEND)
+| 1. RUTE OTOMATIS & LOGIN VIEW
 |--------------------------------------------------------------------------
 */
-Route::get('/', fn () => redirect('/test.html'));
+Route::get('/', fn () => redirect('/login'));
 
 Route::get('/login', function () {
-    return view('login');
-})->name('login.view');
-
-Route::get('/admin', function () {
-    return view('layouts.admin'); 
-})->name('admin.view');
-
-Route::get('/penjual', function () {
-    return view('layouts.seller');
-})->name('penjual.view');
+    return view('auth.login');
+})->name('login');
 
 /*
 |--------------------------------------------------------------------------
-| 2. RUTE PROSES & AUTENTIKASI (BACKEND)
+| 2. RUTE PROSES & PANEL INTEGRASI (FRONTEND + BACKEND)
 |--------------------------------------------------------------------------
 */
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
@@ -47,23 +42,27 @@ Route::middleware('auth.json')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', fn () => response()->json(['area' => 'Admin Dashboard']))->name('dashboard');
+        Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
 
         // Manajemen Pengguna (CRUD Penjual)
         Route::get('/users',           [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
         Route::get('/users/{user}',    [UserController::class, 'show'])->name('users.show');
         Route::post('/users',          [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}',    [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
         // Manajemen Produk (CRUD Produk)
         Route::get('/products',           [ProductController::class, 'index'])->name('products.index');
+        Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
         Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
         Route::post('/products',          [ProductController::class, 'store'])->name('products.store');
+        Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
         Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
         Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 
-        // Manajemen Laporan Penjualan (Edit, Hapus, Status)
+        // Manajemen Laporan Penjualan
         Route::get('/laporan',                  [LaporJualanController::class, 'indexAdmin'])->name('laporan.index');
         Route::get('/laporan/{report}',         [LaporJualanController::class, 'showAdmin'])->name('laporan.show');
         Route::put('/laporan/{report}',         [LaporJualanController::class, 'update'])->name('laporan.update');
@@ -103,17 +102,23 @@ Route::middleware('auth.json')->group(function () {
     | C. PANEL PENJUAL
     |----------------------------------------------------------------------
     */
-    Route::middleware('role:penjual')->prefix('penjual')->name('penjual.')->group(function () {
-        Route::get('/dashboard',    fn () => response()->json(['area' => 'Penjual Dashboard']))->name('dashboard');
+    Route::middleware('role:penjual')->prefix('penjual')->name('penjual.')->group(function () { 
+        Route::get('/dashboard', [DashboardController::class, 'sellerDashboard'])->name('dashboard');
         Route::get('/stock',        fn () => response()->json(['area' => 'Stok Saya']))->name('stock');
         Route::get('/income',       fn () => response()->json(['area' => 'Penghasilan Harian']))->name('income');
         Route::post('/transaction', fn () => response()->json(['area' => 'Input Transaksi']))->name('transaction.store');
         Route::post('/location',    fn () => response()->json(['area' => 'Update Lokasi']))->name('location.update');
         
         // Laporan Jualan & Alokasi Stok Milik Sendiri
-        {{-- Menggunakan implementasi terbaru dari Controller teman Anda --}}
         Route::post('/lapor-jualan',  [LaporJualanController::class, 'store'])->name('laporan.store');
         Route::get('/riwayat-jualan', [LaporJualanController::class, 'riwayat'])->name('laporan.riwayat');
         Route::get('/my-stock',       [StockAllocationController::class, 'myStock'])->name('stock.mine');
     });
+
+    Route::post('/logout', function(Request $request) {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect('/login');
+    })->name('logout');
 });

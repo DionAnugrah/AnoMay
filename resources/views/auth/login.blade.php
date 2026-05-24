@@ -35,13 +35,19 @@
         <form action="/login" method="POST">
             @csrf
             
+            @if ($errors->any() || session('error'))
+            <div class="mb-5 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl text-sm text-center font-medium">
+                {{ session('error') ?? $errors->first() }}
+            </div>
+            @endif
+            
             <div class="mb-5 relative">
-                <label class="block text-anomay-dark text-sm font-semibold mb-2">Email</label>
+                <label class="block text-anomay-dark text-sm font-semibold mb-2">Username</label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 002 2v10a2 2 0 002 2z"></path></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                     </div>
-                    <input type="text" name="email" class="w-full bg-white border border-transparent rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-anomay-orange shadow-sm transition" placeholder="Masukkan email anda..." required>
+                    <input type="text" name="username" class="w-full bg-white border border-transparent rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-anomay-orange shadow-sm transition" placeholder="Masukkan username anda..." required>
                 </div>
             </div>
 
@@ -65,6 +71,7 @@
             <button type="submit" class="w-full bg-anomay-orange text-white font-poppins font-bold py-3.5 px-4 rounded-xl shadow-md hover:bg-orange-600 active:scale-95 transition-all duration-200">
                 Masuk
             </button>
+            
         </form>
         </div>
     </div>
