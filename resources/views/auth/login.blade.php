@@ -8,7 +8,7 @@
 </head>
 <body class="bg-anomay-beige font-inter min-h-screen relative overflow-hidden flex flex-col justify-center items-center p-6">
 
-    <div class="absolute bottom-0 left-0 right-0 z-0 opacity-20 text-anomay-sage flex justify-center items-end pointer-events-none">
+    <div class="absolute bottom-0 left-0 right-0 z-0 opacity-40 text-anomay-sage flex justify-center items-end pointer-events-none">
         <svg viewBox="0 0 1440 320" class="w-full h-auto">
             <g transform="translate(100, 50)">
                 <ellipse cx="200" cy="200" rx="150" ry="80" stroke="currentColor" stroke-width="4" fill="none" />
@@ -28,8 +28,8 @@
     <div class="w-full max-w-sm relative z-10">
         
         <div class="text-center mb-10">
-            <h1 class="font-poppins text-4xl font-extrabold text-anomay-dark tracking-tighter">AnoMay</h1>
-            <p class="text-sm text-gray-500 mt-2 font-medium">Sistem Penjualan Siomay Keliling</p>
+            <h1 class="font-poppins text-4xl font-extrabold text-anomay-dark tracking-tighter">Ano<span class="text-anomay-orange">May</span></h1>
+            <p class="text-sm text-gray-500 mt-2 font-medium">Website Manajemen Usaha Siomay</p>
         </div>
 
         <form action="/login" method="POST">
@@ -73,7 +73,6 @@
             </button>
             
         </form>
-        </div>
     </div>
 
 </body>
