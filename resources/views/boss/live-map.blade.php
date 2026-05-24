@@ -322,17 +322,17 @@
     <div class="top-bar">
         <div class="page-title">Peta <span>Penjual</span></div>
         <div class="topbar-right">
-            <div class="live-pill">
+            <!-- <div class="live-pill">
                 <span class="live-dot"></span>
-                LIVE
-            </div>
-            <button class="refresh-btn" id="btn-refresh" onclick="muatSemuaLokasi()">
+                LIVE &nbsp;<span id="countdown" style="font-variant-numeric:tabular-nums;min-width:20px;display:inline-block">1d</span>
+            </div> -->
+            <!-- <button class="refresh-btn" id="btn-refresh" onclick="muatSemuaLokasi()">
                 <svg class="refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="23 4 23 10 17 10"/>
                     <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                 </svg>
                 Refresh Lokasi
-            </button>
+            </button> -->
         </div>
     </div>
 
@@ -381,7 +381,7 @@
             <div class="map-card-header">
                 <div>
                     <p class="map-card-title">Lokasi Real-time Penjual</p>
-                    <p class="map-card-sub">Titik diperbarui otomatis setiap 30 detik</p>
+                    <p class="map-card-sub">Titik diperbarui otomatis setiap 10 detik</p>
                 </div>
                 <div class="map-legend">
                     <span class="map-legend-item"><span class="legend-circle lc-aktif"></span> Aktif</span>
@@ -428,11 +428,23 @@
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    let map, markerLayer = {};
+    let map, markerLayer = {}, trailLayer = {};
     let dataPenjual = [];
     let selectedId = null;
 
     const STATUS_COLOR = { aktif: '#10b981', idle: '#f59e0b', offline: '#9ca3af' };
+    // Warna jalur unik per penjual
+    const TRAIL_COLORS = ['#2563eb','#dc2626','#7c3aed','#0891b2','#d97706','#059669'];
+    const userColorMap = {};
+    let colorIdx = 0;
+
+    function getTrailColor(userId) {
+        if (!userColorMap[userId]) {
+            userColorMap[userId] = TRAIL_COLORS[colorIdx % TRAIL_COLORS.length];
+            colorIdx++;
+        }
+        return userColorMap[userId];
+    }
 
     // ── Fetch dari BE ─────────────────────────────────────────
     async function fetchLokasi() {
@@ -442,8 +454,13 @@
                 'Accept': 'application/json'
             }
         });
+        if (!res.ok) {
+            console.error('HTTP error', res.status, await res.text());
+            throw new Error('HTTP ' + res.status);
+        }
         const json = await res.json();
-        if (json.status !== 'success') throw new Error('Gagal ambil data');
+        console.log('[lokasi response]', json);
+        if (json.status !== 'success') throw new Error('status bukan success: ' + JSON.stringify(json));
         return json.data;
     }
 
@@ -561,16 +578,61 @@
         renderSidebar(dataPenjual.filter(p => p.nama.toLowerCase().includes(kata.toLowerCase())));
     }
 
+    // ── Load Trail (jalur perjalanan) ─────────────────────────
+    async function muatTrail(userId) {
+        try {
+            const res = await fetch(`/boss/locations/${userId}/trail`, {
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                }
+            });
+            const json = await res.json();
+            if (!json.data || json.data.length < 2) return;
+
+            const color  = getTrailColor(userId);
+            const points = json.data.map(p => [p.latitude, p.longitude]);
+
+            // Hapus trail lama kalau ada
+            if (trailLayer[userId]) map.removeLayer(trailLayer[userId]);
+
+            // Gambar polyline jalur
+            trailLayer[userId] = L.polyline(points, {
+                color,
+                weight: 3,
+                opacity: 0.75,
+                lineJoin: 'round',
+            }).addTo(map);
+
+            // Titik awal (start marker kecil)
+            const first = json.data[0];
+            L.circleMarker([first.latitude, first.longitude], {
+                radius: 5, color, fillColor: '#fff', fillOpacity: 1, weight: 2
+            }).addTo(map).bindTooltip(`Start ${first.time}`, { permanent: false });
+
+        } catch (e) {
+            // trail gagal tidak perlu crash
+        }
+    }
+
     // ── Load Semua Lokasi ─────────────────────────────────────
     async function muatSemuaLokasi() {
         const btn = document.getElementById('btn-refresh');
-        btn.classList.add('loading');
+        if (btn) btn.classList.add('loading');
         try {
             const data = await fetchLokasi();
+            console.log('[data[0]]', data[0]);
             dataPenjual = data;
             renderStat(data);
             renderSidebar(data);
-            data.forEach(p => renderMarker(p));
+            data.forEach(p => {
+                try {
+                    renderMarker(p);
+                    muatTrail(p.id);
+                } catch(e) {
+                    console.error('[renderMarker error]', p, e);
+                }
+            });
 
             // Auto-fit peta ke semua marker kalau ada data
             if (data.length > 0) {
@@ -584,20 +646,33 @@
         } catch (err) {
             console.error('Gagal memuat lokasi:', err);
             document.getElementById('daftar-penjual').innerHTML =
-                '<div class="empty-state">Gagal memuat data. Coba refresh.</div>';
+                `<div class="empty-state" style="color:#ef4444">Gagal: ${err.message}<br><small>Cek console untuk detail</small></div>`;
         }
-        btn.classList.remove('loading');
+        if (btn) btn.classList.remove('loading');
     }
 
     // ── Init ──────────────────────────────────────────────────
+    let countdown = 10;
+    let countdownEl;
+
+    function tickCountdown() {
+        countdown--;
+        if (countdownEl) countdownEl.textContent = countdown + 'd';
+        if (countdown <= 0) {
+            countdown = 10;
+            muatSemuaLokasi();
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
+        countdownEl = document.getElementById('countdown');
         initMap();
         setTimeout(function () {
             map.invalidateSize();
             muatSemuaLokasi();
         }, 150);
-        // Auto refresh setiap 30 detik
-        setInterval(muatSemuaLokasi, 30000);
+        // Live: refresh tiap 10 detik (tick per 1 detik)
+        setInterval(tickCountdown, 100);
     });
 </script>
 @endpush

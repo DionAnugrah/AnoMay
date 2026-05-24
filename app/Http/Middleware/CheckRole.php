@@ -17,21 +17,26 @@ class CheckRole
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        // Belum login sama sekali
         if (! Auth::check()) {
-            return response()->json([
-                'message' => 'Unauthenticated. Silakan login terlebih dahulu.',
-            ], 401);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+            return redirect('/login');
         }
 
         $user = Auth::user();
 
-        // Role tidak cocok dengan yang diizinkan
         if (! in_array($user->role, $roles)) {
-            return response()->json([
-                'message' => 'Forbidden. Anda tidak punya akses ke halaman ini.',
-                'your_role' => $user->role,
-                'required'  => $roles,
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message'   => 'Forbidden.',
+                    'your_role' => $user->role,
+                    'required'  => $roles,
+                ], 403);
+            }
+            return response()->view('errors.403', [
+                'yourRole' => $user->role,
+                'required' => $roles,
             ], 403);
         }
 

@@ -492,6 +492,24 @@
             </div>
         </div>
 
+        {{-- Donut Chart per Produk --}}
+        <div class="chart-card">
+            <div class="chart-title">Penjualan per Produk</div>
+            <div class="chart-sub">Total semua waktu (porsi tiap produk)</div>
+            <div style="position:relative; width:100%; height:220px;">
+                <canvas id="chartProdukBoss"></canvas>
+            </div>
+        </div>
+
+        {{-- Bar Chart Penjual Hari Ini --}}
+        <div class="chart-card">
+            <div class="chart-title">Penjualan Hari Ini per Penjual</div>
+            <div class="chart-sub" id="chart-today-sub">—</div>
+            <div style="position:relative; width:100%; height:220px;">
+                <canvas id="chartHariIni"></canvas>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -531,6 +549,25 @@
             const now = new Date();
             document.getElementById('m-today-date').textContent =
                 now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
+            // Grafik donut per produk
+            if (d.per_produk && Object.keys(d.per_produk).length > 0) {
+                const COLORS = ['#ff7f11','#2563eb','#16a34a','#7c3aed','#dc2626','#0891b2','#d97706'];
+                new Chart(document.getElementById('chartProdukBoss'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(d.per_produk),
+                        datasets: [{ data: Object.values(d.per_produk), backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } },
+                            tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw} pcs` } }
+                        }
+                    }
+                });
+            }
 
         } catch(e) {
             console.error('Gagal load sales:', e);
@@ -683,6 +720,38 @@
                 }
             }
         });
+
+        // Grafik bar penjualan hari ini
+        const ctxHariIni = document.getElementById('chartHariIni');
+        if (ctxHariIni && penjual.length > 0) {
+            const now = new Date();
+            const sub = document.getElementById('chart-today-sub');
+            if (sub) sub.textContent = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            new Chart(ctxHariIni, {
+                type: 'bar',
+                data: {
+                    labels: penjual.map(p => p.name.split(' ')[0]),
+                    datasets: [{
+                        label: 'Terjual (pcs)',
+                        data: penjual.map(p => p.total_terjual),
+                        backgroundColor: colors,
+                        borderRadius: 8, borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: c => ` ${c.raw} pcs` } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#9ca3af' } },
+                        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 }, color: '#9ca3af' } }
+                    }
+                }
+            });
+        }
     }
 
     // ── Init ──────────────────────────────────────────────────

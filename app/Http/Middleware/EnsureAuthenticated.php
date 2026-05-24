@@ -16,9 +16,10 @@ class EnsureAuthenticated
     public function handle(Request $request, Closure $next): Response
     {
         if (! Auth::check()) {
-            return response()->json([
-                'message' => 'Unauthenticated. Silakan login terlebih dahulu.',
-            ], 401);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+            return redirect('/login');
         }
 
         return $next($request);

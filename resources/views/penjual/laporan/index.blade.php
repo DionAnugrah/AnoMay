@@ -15,7 +15,7 @@
                     <span class="text-xs font-semibold text-gray-500 block mb-1">
                         {{ \Carbon\Carbon::parse($report->date)->translatedFormat('l, d M Y') }}
                     </span>
-                    <h3 class="font-poppins font-bold text-anomay-dark">{{ $report->stockAllocation->product->name ?? 'Produk Siomay' }}</h3>
+                    <h3 class="font-poppins font-bold text-anomay-dark">{{ $report->stockAllocation?->product?->name ?? 'Produk Siomay' }}</h3>
                 </div>
                 
                 @if($report->status === 'accepted')

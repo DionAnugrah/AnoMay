@@ -35,7 +35,7 @@
                 <tr class="hover:bg-gray-50 transition">
                     <td class="p-4 text-gray-700">{{ \Carbon\Carbon::parse($report->date)->translatedFormat('d M Y') }}</td>
                     <td class="p-4 text-gray-700 font-medium">{{ $report->user->name ?? 'N/A' }}</td>
-                    <td class="p-4 text-gray-700">{{ $report->stockAllocation->product->name ?? 'N/A' }}</td>
+                    <td class="p-4 text-gray-700">{{ $report->stockAllocation?->product?->name ?? 'N/A' }}</td>
                     <td class="p-4 text-red-500 font-bold">{{ $report->qty_returned }} pcs</td>
                     <td class="p-4 text-green-600 font-bold">Rp {{ number_format($report->total_deposit, 0, ',', '.') }}</td>
                     <td class="p-4">

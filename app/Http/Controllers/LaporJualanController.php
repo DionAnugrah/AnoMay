@@ -22,21 +22,21 @@ class LaporJualanController extends Controller
 
         if ($alokasi->user_id !== $penjual->id) {
             return $request->wantsJson() 
-                ? response()->json(['error' => 'Alokasi stok ini bukan milik Anda.'], 403) 
-                : back()->with('error', 'Alokasi stok ini bukan milik Anda.');
+                ? response()->json(['message' => 'Alokasi stok ini bukan milik Anda.'], 403) 
+                : back()->with('message', 'Alokasi stok ini bukan milik Anda.');
         }
 
         if ($request->qty_sold > $alokasi->qty_given) {
             return $request->wantsJson() 
-                ? response()->json(['error' => 'Jumlah terjual melebihi stok yang dibawa.'], 422) 
-                : back()->with('error', 'Jumlah terjual melebihi stok yang dibawa.');
+                ? response()->json(['message' => 'Jumlah terjual melebihi stok yang dibawa.'], 422) 
+                : back()->with('message', 'Jumlah terjual melebihi stok yang dibawa.');
         }
 
         $sudahLapor = DailyReport::where('stock_allocation_id', $alokasi->id)->exists();
         if ($sudahLapor) {
             return $request->wantsJson() 
-                ? response()->json(['error' => 'Produk ini sudah dilaporkan untuk tanggal tersebut.'], 422) 
-                : back()->with('error', 'Produk ini sudah dilaporkan untuk tanggal tersebut.');
+                ? response()->json(['message' => 'Produk ini sudah dilaporkan untuk tanggal tersebut.'], 422) 
+                : back()->with('message', 'Produk ini sudah dilaporkan untuk tanggal tersebut.');
         }
 
         $qtySold      = $request->qty_sold;
@@ -118,14 +118,14 @@ class LaporJualanController extends Controller
 
         if (!$alokasi) {
             return $request->wantsJson() 
-                ? response()->json(['error' => 'Data alokasi tidak ditemukan.'], 404) 
-                : back()->with('error', 'Data alokasi stok untuk laporan ini tidak ditemukan.');
+                ? response()->json(['message' => 'Data alokasi tidak ditemukan.'], 404) 
+                : back()->with('message', 'Data alokasi stok untuk laporan ini tidak ditemukan.');
         }
 
         if ($request->qty_sold > $alokasi->qty_given) {
             return $request->wantsJson() 
-                ? response()->json(['error' => 'Melebihi stok dibawa.'], 422) 
-                : back()->with('error', 'Jumlah terjual melebihi stok yang dibawa.');
+                ? response()->json(['message' => 'Melebihi stok dibawa.'], 422) 
+                : back()->with('message', 'Jumlah terjual melebihi stok yang dibawa.');
         }
 
         $qtySold      = $request->qty_sold;
