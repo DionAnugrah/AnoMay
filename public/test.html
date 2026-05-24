@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AnoMay — Testing Panel</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #f1f5f9; color: #1e293b; }
@@ -126,6 +128,7 @@ function renderPanel(id) {
   if (id === 'panel-stock') populateStockDropdowns();
   if (id === 'panel-laporan-admin') populateLaporanFilter();
   if (id === 'panel-lapor') { populateLaporDropdown(); setTimeout(() => loadStokHariIni(today()), 50); }
+  if (id === 'panel-map') setTimeout(initMap, 50);
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
@@ -163,15 +166,18 @@ function buildUI() {
       { label: '📦 Kelola Produk', panel: 'panel-products' },
       { label: '🌅 Alokasi Stok', panel: 'panel-stock' },
       { label: '📋 Laporan Jualan', panel: 'panel-laporan-admin' },
+      { label: '🗺️ Peta Penjual', panel: 'panel-map' },
       { label: '🤖 Insight AI', panel: 'panel-ai' },
     ],
     boss: [
       { section: 'Boss' },
       { label: '📋 Semua Laporan', panel: 'panel-laporan-admin' },
+      { label: '🗺️ Peta Penjual', panel: 'panel-map' },
       { label: '🤖 Insight AI', panel: 'panel-ai' },
     ],
     penjual: [
       { section: 'Penjual' },
+      { label: '🛵 Keliling', panel: 'panel-gps' },
       { label: '📝 Lapor Jualan', panel: 'panel-lapor' },
       { label: '📜 Riwayat Jualan', panel: 'panel-riwayat' },
     ],
@@ -196,11 +202,11 @@ function buildPanels(role) {
   let html = '';
 
   if (role === 'admin') {
-    html += panelUsers() + panelProducts() + panelStock() + panelLaporanAdmin() + panelAi();
+    html += panelUsers() + panelProducts() + panelStock() + panelLaporanAdmin() + panelMap() + panelAi();
   } else if (role === 'boss') {
-    html += panelLaporanAdmin() + panelAi();
+    html += panelLaporanAdmin() + panelMap() + panelAi();
   } else if (role === 'penjual') {
-    html += panelLapor() + panelRiwayat();
+    html += panelGps() + panelLapor() + panelRiwayat();
   }
 
   return html;
@@ -619,6 +625,206 @@ async function loadRiwayat() {
       <td><span class="badge badge-${l.status}">${l.status}</span></td>
     </tr>`).join('');
   el.innerHTML = `<table><thead><tr><th>Tanggal</th><th>Terjual</th><th>Sisa</th><th>Setoran</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ─── PANEL: GPS PENJUAL (tombol keliling) ────────────────────────────────────
+let gpsWatchId  = null;   // watchPosition ID
+let lastSentAt  = 0;      // timestamp kirim terakhir (throttle)
+const GPS_THROTTLE_MS = 15000; // kirim max tiap 15 detik
+
+function panelGps() {
+  return `
+  <div class="panel" id="panel-gps">
+    <h2>🛵 Mode Keliling</h2>
+    <div class="card" style="max-width:480px;text-align:center">
+      <div id="gps-status" style="font-size:13px;color:#64748b;margin-bottom:16px">Tekan tombol untuk mulai berbagi lokasi.</div>
+      <button id="btn-keliling" class="btn btn-success" style="width:100%;padding:14px;font-size:16px" onclick="toggleKeliling()">
+        🛵 Mulai Keliling
+      </button>
+      <div id="gps-coords" style="margin-top:14px;font-size:13px;color:#475569;display:none">
+        📍 <span id="gps-lat">-</span>, <span id="gps-lng">-</span>
+        <br><span id="gps-last-sent" style="color:#94a3b8"></span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleKeliling() {
+  gpsWatchId !== null ? stopKeliling() : startKeliling();
+}
+
+function startKeliling() {
+  if (!navigator.geolocation) { alert('Browser ini tidak mendukung GPS.'); return; }
+  const btn    = document.getElementById('btn-keliling');
+  const status = document.getElementById('gps-status');
+  status.textContent = 'Meminta izin lokasi...';
+
+  // watchPosition: browser terus pantau GPS, callback dipanggil tiap ada perubahan posisi
+  gpsWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      updateGpsDisplay(pos.coords);
+
+      // Throttle: kirim ke server max tiap 15 detik agar tidak spam
+      const now = Date.now();
+      if (now - lastSentAt >= GPS_THROTTLE_MS) {
+        lastSentAt = now;
+        kirimLokasi(pos.coords);
+      }
+
+      status.textContent = '🟢 Live — posisi dipantau terus-menerus';
+      document.getElementById('gps-coords').style.display = 'block';
+    },
+    (err) => {
+      status.textContent = '❌ ' + (err.code === 1 ? 'Izin ditolak.' : 'GPS error: ' + err.message);
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+  );
+
+  btn.textContent = '⏹ Stop Keliling';
+  btn.style.background = '#ef4444';
+}
+
+function stopKeliling() {
+  navigator.geolocation.clearWatch(gpsWatchId);
+  gpsWatchId = null;
+  const btn = document.getElementById('btn-keliling');
+  btn.textContent = '🛵 Mulai Keliling';
+  btn.style.background = '#16a34a';
+  document.getElementById('gps-status').textContent = 'Tracking berhenti.';
+}
+
+function updateGpsDisplay(coords) {
+  const lat = document.getElementById('gps-lat');
+  const lng = document.getElementById('gps-lng');
+  if (lat) lat.textContent = coords.latitude.toFixed(6);
+  if (lng) lng.textContent = coords.longitude.toFixed(6);
+}
+
+async function kirimLokasi(coords) {
+  const r = await api('POST', '/penjual/location', {
+    latitude:  coords.latitude,
+    longitude: coords.longitude,
+  });
+  const el = document.getElementById('gps-last-sent');
+  if (el) el.textContent = r.ok ? '📡 Terkirim: ' + new Date().toLocaleTimeString('id') : '⚠️ Gagal kirim';
+}
+
+// ─── PANEL: PETA BOSS/ADMIN ───────────────────────────────────────────────────
+let leafletMap   = null;
+let mapMarkers   = {};   // { userId: { marker, polyline } }
+let mapRefreshId = null;
+
+// Warna unik per penjual
+const TRAIL_COLORS = ['#2563eb','#16a34a','#dc2626','#d97706','#7c3aed','#0891b2'];
+let colorIndex = 0;
+const userColors = {};
+
+function getColor(userId) {
+  if (!userColors[userId]) {
+    userColors[userId] = TRAIL_COLORS[colorIndex % TRAIL_COLORS.length];
+    colorIndex++;
+  }
+  return userColors[userId];
+}
+
+// Icon marker aktif (hijau) dan tidak aktif (abu)
+function makeIcon(active, color) {
+  const bg = active ? color : '#94a3b8';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+    <path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z" fill="${bg}"/>
+    <circle cx="14" cy="14" r="6" fill="white"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg, className: '', iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -36]
+  });
+}
+
+function panelMap() {
+  return `
+  <div class="panel" id="panel-map">
+    <h2>🗺️ Peta Lokasi Penjual</h2>
+    <div class="card" style="padding:12px 16px 8px;margin-bottom:8px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:13px;color:#475569">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#16a34a;margin-right:4px"></span>Aktif (≤10 menit)
+        &nbsp;
+        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#94a3b8;margin-right:4px"></span>Tidak aktif
+      </span>
+      <button class="btn btn-primary btn-sm" onclick="refreshMap()">🔄 Refresh</button>
+      <span id="map-last-refresh" style="font-size:12px;color:#94a3b8;margin-left:auto"></span>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div id="leaflet-map" style="height:520px;width:100%;border-radius:10px"></div>
+    </div>
+    <div id="map-legend" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"></div>
+  </div>`;
+}
+
+function initMap() {
+  if (leafletMap) return;
+  leafletMap = L.map('leaflet-map').setView([-2.5, 118], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors', maxZoom: 19,
+  }).addTo(leafletMap);
+  refreshMap();
+  mapRefreshId = setInterval(refreshMap, 10 * 1000); // live: refresh tiap 10 detik
+}
+
+async function refreshMap() {
+  const prefix = currentUser.role === 'admin' ? 'admin' : 'boss';
+  const r = await api('GET', `/${prefix}/locations`);
+  if (!r.ok || !r.data.data.length) return;
+
+  const bounds = [];
+  const legendEl = document.getElementById('map-legend');
+  if (legendEl) legendEl.innerHTML = '';
+
+  for (const loc of r.data.data) {
+    const latlng  = [loc.latitude, loc.longitude];
+    const color   = getColor(loc.user_id);
+    const active  = loc.is_active;
+    const icon    = makeIcon(active, color);
+    const popup   = `<b>${loc.name}</b><br>
+      <span style="color:${active ? '#16a34a' : '#94a3b8'}">${active ? '🟢 Aktif' : '⚫ Tidak aktif'}</span><br>
+      📍 ${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}<br>
+      <small>${loc.updated_at}</small>`;
+
+    bounds.push(latlng);
+
+    if (mapMarkers[loc.user_id]) {
+      mapMarkers[loc.user_id].marker.setLatLng(latlng).setIcon(icon).setPopupContent(popup);
+    } else {
+      const marker = L.marker(latlng, { icon }).addTo(leafletMap).bindPopup(popup);
+      mapMarkers[loc.user_id] = { marker, polyline: null };
+    }
+
+    // Ambil trail (jalur hari ini)
+    const rt = await api('GET', `/${prefix}/locations/${loc.user_id}/trail`);
+    if (rt.ok && rt.data.data.length > 1) {
+      const pts = rt.data.data.map(p => [p.latitude, p.longitude]);
+
+      if (mapMarkers[loc.user_id].polyline) {
+        mapMarkers[loc.user_id].polyline.setLatLngs(pts);
+      } else {
+        const polyline = L.polyline(pts, {
+          color, weight: 3, opacity: 0.7, dashArray: active ? null : '6,6'
+        }).addTo(leafletMap);
+        mapMarkers[loc.user_id].polyline = polyline;
+      }
+    }
+
+    // Legend
+    if (legendEl) {
+      legendEl.innerHTML += `<span style="display:inline-flex;align-items:center;gap:6px;background:white;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;font-size:12px">
+        <span style="display:inline-block;width:14px;height:4px;background:${color};border-radius:2px"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:${active ? color : '#94a3b8'};display:inline-block"></span>
+        ${loc.name}
+      </span>`;
+    }
+  }
+
+  if (bounds.length) leafletMap.fitBounds(bounds, { padding: [50, 50] });
+  const el = document.getElementById('map-last-refresh');
+  if (el) el.textContent = 'Diperbarui: ' + new Date().toLocaleTimeString('id');
 }
 
 // ─── PANEL: AI INSIGHT ───────────────────────────────────────────────────────

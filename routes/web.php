@@ -7,7 +7,8 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\LaporJualanController;
 use App\Http\Controllers\AiInsightController;
 use App\Http\Controllers\StockAllocationController;
-use App\Http\Controllers\BossDashboardController;
+use App\Http\Controllers\LocationController;
+use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,7 +35,7 @@ Route::middleware('auth.json')->group(function () {
     */
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
 
-        Route::get('/dashboard', fn () => response()->json(['area' => 'Admin Dashboard']))->name('dashboard');
+        Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
 
         // CRUD Penjual
         Route::get('/users',           [UserController::class, 'index'])->name('users.index');
@@ -66,6 +67,8 @@ Route::middleware('auth.json')->group(function () {
         //Laporan Analisis AI
         Route::get('/ai/insight/harian',  [AiInsightController::class, 'harianInsight'])->name('ai.harian');
         Route::get('/ai/insight/bulanan', [AiInsightController::class, 'bulananInsight'])->name('ai.bulanan');
+        Route::get('/locations',                    [LocationController::class, 'latest'])->name('locations');
+        Route::get('/locations/{userId}/trail',     [LocationController::class, 'trail'])->name('locations.trail');
     });
 
     /*
@@ -74,13 +77,15 @@ Route::middleware('auth.json')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:boss')->prefix('boss')->name('boss.')->group(function () {
-        Route::get('/dashboard',   fn () => response()->json(['area' => 'Boss Dashboard']))->name('dashboard');
-        Route::get('/sales',       [BossDashboardController::class, 'salesSummary'])->name('sales');
-        Route::get('/performance', [BossDashboardController::class, 'performanceSummary'])->name('performance');
-        Route::get('/profit',      [BossDashboardController::class, 'profitSummary'])->name('profit');
-        Route::get('/bonus',       fn () => response()->json(['area' => 'Rekomendasi Bonus']))->name('bonus');
+        Route::get('/dashboard',   [DashboardController::class, 'bossDashboard'])->name('dashboard');
+        Route::get('/sales',       [DashboardController::class, 'sales'])->name('sales');
+        Route::get('/performance', [DashboardController::class, 'performance'])->name('performance');
+        Route::get('/profit',      [DashboardController::class, 'profit'])->name('profit');
+        Route::get('/bonus',       [DashboardController::class, 'bonus'])->name('bonus');
         Route::get('/ai/insight/harian',  [AiInsightController::class, 'harianInsight'])->name('ai.harian');
         Route::get('/ai/insight/bulanan', [AiInsightController::class, 'bulananInsight'])->name('ai.bulanan');
+        Route::get('/locations',                    [LocationController::class, 'latest'])->name('locations');
+        Route::get('/locations/{userId}/trail',     [LocationController::class, 'trail'])->name('locations.trail');
     });
 
     /*
@@ -89,11 +94,10 @@ Route::middleware('auth.json')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:penjual')->prefix('penjual')->name('penjual.')->group(function () {
-        Route::get('/dashboard',    fn () => response()->json(['area' => 'Penjual Dashboard']))->name('dashboard');
-        Route::get('/stock',        fn () => response()->json(['area' => 'Stok Saya']))->name('stock');
-        Route::get('/income',       fn () => response()->json(['area' => 'Penghasilan Harian']))->name('income');
+        Route::get('/dashboard',    [DashboardController::class, 'penjualDashboard'])->name('dashboard');
+        Route::get('/income',       [DashboardController::class, 'income'])->name('income');
         Route::post('/transaction', fn () => response()->json(['area' => 'Input Transaksi']))->name('transaction.store');
-        Route::post('/location',    fn () => response()->json(['area' => 'Update Lokasi']))->name('location.update');
+        Route::post('/location',    [LocationController::class, 'store'])->name('location.store');
         Route::post('/lapor-jualan',   [LaporJualanController::class, 'store'])->name('laporan.store');
         Route::get('/riwayat-jualan',  [LaporJualanController::class, 'riwayat'])->name('laporan.riwayat');
         Route::get('/my-stock',        [StockAllocationController::class, 'myStock'])->name('stock.mine');
