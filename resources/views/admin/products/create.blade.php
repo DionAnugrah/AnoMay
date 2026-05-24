@@ -3,38 +3,70 @@
 @section('title', 'Tambah Produk - AnoMay')
 
 @section('content')
-    <div class="flex items-center mb-5 space-x-3">
-        <a href="/admin/products" class="text-gray-400 hover:text-anomay-orange transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+<div class="dash">
+
+    {{-- Header --}}
+    <div class="flex items-center gap-3 mb-6">
+        <a href="/admin/products"
+           class="w-9 h-9 rounded-xl flex items-center justify-center transition"
+           style="background:var(--bg-card); border:0.5px solid var(--border); color:var(--text-muted)"
+           onmouseover="this.style.color='#ff7f11'" onmouseout="this.style.color='var(--text-muted)'">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
         </a>
-        <h2 class="font-poppins text-2xl font-bold text-anomay-dark">Tambah Item Siomay</h2>
+        <div>
+            <h2 class="page-title">Tambah Item Siomay</h2>
+            <p class="page-sub">Tambah produk baru ke katalog</p>
+        </div>
     </div>
 
-    <div class="bg-white shadow-md rounded-lg overflow-hidden p-6 max-w-2xl">
-        @if ($errors->any())
-            <div class="mb-5 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm font-medium">
-                <ul class="list-disc pl-5">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+    {{-- Error --}}
+    @if ($errors->any())
+    <div class="flash-error max-w-xl">
+        <ul class="list-disc pl-5 space-y-1">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
 
+    {{-- Form Card --}}
+    <div class="panel p-6 max-w-xl">
         <form action="/admin/products" method="POST">
             @csrf
-            
+
             <div class="mb-5">
-                <label class="block text-sm font-semibold text-anomay-dark mb-2">Nama Produk</label>
-                <input type="text" name="name" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-anomay-orange outline-none bg-gray-50" placeholder="Contoh: Tahu Bakso" required>
+                <label class="block text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--text-muted)">Nama Produk</label>
+                <input type="text" name="name" value="{{ old('name') }}"
+                       placeholder="Contoh: Tahu Bakso"
+                       class="filter-input w-full py-3" required>
             </div>
 
             <div class="mb-6">
-                <label class="block text-sm font-semibold text-anomay-dark mb-2">Harga Jual (Rp)</label>
-                <input type="number" name="price" min="0" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-anomay-orange outline-none bg-gray-50" placeholder="Contoh: 2000" required>
+                <label class="block text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--text-muted)">Harga Jual</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold" style="color:var(--text-muted)">Rp</span>
+                    <input type="number" name="price" value="{{ old('price') }}" min="0"
+                           placeholder="Contoh: 2000"
+                           class="filter-input w-full py-3 pl-10" required>
+                </div>
+                <p class="text-xs mt-1.5" style="color:var(--text-muted)">Harga per porsi yang akan dibayar pembeli</p>
             </div>
 
-            <button type="submit" class="bg-anomay-orange text-white px-6 py-3 rounded-lg font-poppins font-bold shadow-sm hover:bg-orange-600 transition">Simpan Produk</button>
+            <div class="flex items-center gap-3 pt-2" style="border-top:0.5px solid var(--border-soft)">
+                <button type="submit"
+                        class="bg-anomay-orange text-white px-6 py-2.5 rounded-xl font-poppins font-semibold text-sm shadow-sm hover:bg-orange-600 transition">
+                    Simpan Produk
+                </button>
+                <a href="/admin/products"
+                   class="btn-edit px-6 py-2.5">
+                    Batal
+                </a>
+            </div>
         </form>
     </div>
+
+</div>
 @endsection
