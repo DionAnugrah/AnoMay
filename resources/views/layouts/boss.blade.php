@@ -52,10 +52,7 @@
             --shadow          : rgba(0,0,0,0.2);
         }
 
-        body {
-            background: var(--bg-page);
-            transition: background 0.2s;
-        }
+        body { background: var(--bg-page); transition: background 0.2s; }
 
         #sidebar {
             background   : var(--sidebar-bg);
@@ -74,9 +71,6 @@
         #user-role     { color: var(--sidebar-muted); transition: color 0.2s; }
         #toggle-label  { color: var(--sidebar-muted); transition: color 0.2s; }
 
-        #btn-toggle { background: var(--nav-hover-bg); color: var(--sidebar-text); transition: background 0.15s; }
-        #btn-toggle:hover { filter: brightness(0.95); }
-
         #main-content { background: var(--bg-page); transition: background 0.2s; }
     </style>
 
@@ -84,7 +78,6 @@
 </head>
 <body class="flex h-screen font-inter">
 
-    {{-- Sidebar --}}
     <div id="sidebar" class="w-64 flex flex-col shadow-sm z-10 flex-shrink-0">
 
         <div id="sidebar-logo-divider" class="p-6 border-b">
@@ -122,11 +115,14 @@
         <div id="sidebar-bottom" class="mt-auto border-t">
             <div class="px-5 py-3 flex items-center justify-between">
                 <span id="toggle-label" class="text-xs font-medium">Tampilan</span>
-                <button id="btn-toggle" onclick="toggleDark()"
-                        class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full">
-                    <span id="theme-icon">🌙</span>
-                    <span id="theme-label">Gelap</span>
-                </button>
+                <label style="display:flex;align-items:center;cursor:pointer" onclick="toggleDark()">
+                    <div id="toggle-track-boss" style="position:relative;width:44px;height:24px;background:#e5e7eb;border-radius:999px;transition:background 0.3s;flex-shrink:0">
+                        <div id="toggle-thumb-boss" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform 0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;overflow:hidden">
+                            <span id="thumb-icon-sun-boss" style="position:absolute;font-size:11px;transition:opacity 0.2s;opacity:1">☀️</span>
+                            <span id="thumb-icon-moon-boss" style="position:absolute;font-size:11px;transition:opacity 0.2s;opacity:0">🌙</span>
+                        </div>
+                    </div>
+                </label>
             </div>
             <div class="px-5 py-3 flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:#ff7f11">
@@ -165,8 +161,11 @@
             isDark
                 ? document.getElementById('html-root').classList.add('dark')
                 : document.getElementById('html-root').classList.remove('dark');
-            document.getElementById('theme-icon').textContent  = isDark ? '☀️' : '🌙';
-            document.getElementById('theme-label').textContent = isDark ? 'Terang' : 'Gelap';
+            document.getElementById('toggle-track-boss').style.background = isDark ? '#ff7f11' : '#e5e7eb';
+            document.getElementById('toggle-thumb-boss').style.transform  = isDark ? 'translateX(20px)' : 'translateX(0)';
+            document.getElementById('thumb-icon-sun-boss').style.opacity  = isDark ? '0' : '1';
+            document.getElementById('thumb-icon-moon-boss').style.opacity = isDark ? '1' : '0';
+            if (typeof updateMapTile === 'function') updateMapTile(isDark);
         }
         function toggleDark() {
             const isDark = !document.getElementById('html-root').classList.contains('dark');

@@ -66,12 +66,6 @@
         #sidebar-label { color: var(--sidebar-muted); transition: color 0.2s; }
         #user-name     { color: var(--user-name);     transition: color 0.2s; }
         #user-role     { color: var(--sidebar-muted); transition: color 0.2s; }
-        #btn-toggle-admin {
-            background: var(--nav-hover-bg);
-            color     : var(--sidebar-text);
-            transition: background 0.15s;
-        }
-        #btn-toggle-admin:hover { filter: brightness(0.95); }
 
         /* ── Main content ── */
         #main-content {
@@ -218,15 +212,17 @@
             </a>
         </nav>
 
-        <div id="sidebar-bottom" class="mt-auto border-t">
-            <div class="px-5 py-3 flex items-center justify-between">
-                <span class="text-xs font-medium" style="color:var(--sidebar-muted)">Tampilan</span>
-                <button id="btn-toggle-admin" onclick="toggleDarkAdmin()"
-                        class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full">
-                    <span id="theme-icon-admin">🌙</span>
-                    <span id="theme-label-admin">Gelap</span>
-                </button>
-            </div>
+        <div class="px-5 py-3 flex items-center justify-between">
+            <span class="text-xs font-medium" style="color:var(--sidebar-muted)">Tampilan</span>
+            <label style="display:flex;align-items:center;cursor:pointer" onclick="toggleDarkAdmin()">
+                <div id="toggle-track-admin" style="position:relative;width:44px;height:24px;background:#e5e7eb;border-radius:999px;transition:background 0.3s;flex-shrink:0">
+                    <div id="toggle-thumb-admin" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform 0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;overflow:hidden">
+                        <span id="thumb-icon-sun-admin" style="position:absolute;font-size:11px;transition:opacity 0.2s;opacity:1">☀️</span>
+                        <span id="thumb-icon-moon-admin" style="position:absolute;font-size:11px;transition:opacity 0.2s;opacity:0">🌙</span>
+                    </div>
+                </div>
+            </label>
+        </div>
             <div class="px-5 py-3 flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:#ff7f11">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -260,19 +256,21 @@
     @stack('scripts')
 
     <script>
-        function applyThemeAdmin(isDark) {
-            isDark
-                ? document.documentElement.classList.add('dark')
-                : document.documentElement.classList.remove('dark');
-            document.getElementById('theme-icon-admin').textContent  = isDark ? '☀️' : '🌙';
-            document.getElementById('theme-label-admin').textContent = isDark ? 'Terang' : 'Gelap';
-        }
-        function toggleDarkAdmin() {
-            const isDark = !document.documentElement.classList.contains('dark');
-            applyThemeAdmin(isDark);
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        }
-        applyThemeAdmin(localStorage.getItem('theme') === 'dark');
-    </script>
+    function applyThemeAdmin(isDark) {
+        isDark
+            ? document.documentElement.classList.add('dark')
+            : document.documentElement.classList.remove('dark');
+        document.getElementById('toggle-track-admin').style.background = isDark ? '#ff7f11' : '#e5e7eb';
+        document.getElementById('toggle-thumb-admin').style.transform  = isDark ? 'translateX(20px)' : 'translateX(0)';
+        document.getElementById('thumb-icon-sun-admin').style.opacity  = isDark ? '0' : '1';
+        document.getElementById('thumb-icon-moon-admin').style.opacity = isDark ? '1' : '0';
+    }
+    function toggleDarkAdmin() {
+        const isDark = !document.documentElement.classList.contains('dark');
+        applyThemeAdmin(isDark);
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+    applyThemeAdmin(localStorage.getItem('theme') === 'dark');
+</script>
 </body>
 </html>

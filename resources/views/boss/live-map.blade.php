@@ -163,13 +163,16 @@
 </div>
 
 @push('scripts')
-{{-- script sama persis --}}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     let map, markerLayer = {}, trailLayer = {};
     let dataPenjual = [];
     let selectedId = null;
     let sudahFitBounds = false;
+
+    const TILE_LIGHT = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const TILE_DARK  = 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png';
+    let tileLayer;
 
     const STATUS_COLOR = { aktif:'#10b981', idle:'#f59e0b', offline:'#9ca3af' };
     const TRAIL_COLORS = ['#2563eb','#dc2626','#7c3aed','#0891b2','#d97706','#059669'];
@@ -192,8 +195,21 @@
     function initMap() {
         map = L.map('peta-leaflet', { center:[-0.8917,119.8707], zoom:13, zoomControl:false });
         L.control.zoom({ position:'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom:19 }).addTo(map);
+        const isDark = document.getElementById('html-root').classList.contains('dark');
+        tileLayer = L.tileLayer(isDark ? TILE_DARK : TILE_LIGHT, {
+            attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com">CARTO</a>',
+            maxZoom:19
+        }).addTo(map);
         window.addEventListener('resize', () => map.invalidateSize());
+    }
+
+    function updateMapTile(isDark) {
+        if (!map || !tileLayer) return;
+        map.removeLayer(tileLayer);
+        tileLayer = L.tileLayer(isDark ? TILE_DARK : TILE_LIGHT, {
+            attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com">CARTO</a>',
+            maxZoom:19
+        }).addTo(map);
     }
 
     function buatIkon(status, nama) {
