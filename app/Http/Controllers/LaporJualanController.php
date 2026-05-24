@@ -15,36 +15,35 @@ class LaporJualanController extends Controller
     // BAGIAN PENJUAL
     // =========================================================
 
-    /**
-     * Penjual simpan laporan jualan — satu laporan per alokasi stok.
-     */
     public function store(LaporJualanRequest $request)
     {
         $penjual = Auth::user();
         $alokasi = StockAllocation::with('product')->findOrFail($request->stock_allocation_id);
 
         if ($alokasi->user_id !== $penjual->id) {
-            return response()->json(['message' => 'Alokasi stok ini bukan milik Anda.'], 403);
+            return $request->wantsJson() 
+                ? response()->json(['error' => 'Alokasi stok ini bukan milik Anda.'], 403) 
+                : back()->with('error', 'Alokasi stok ini bukan milik Anda.');
         }
 
         if ($request->qty_sold > $alokasi->qty_given) {
-            return response()->json([
-                'message'     => 'Jumlah terjual melebihi stok yang dibawa.',
-                'stok_dibawa' => $alokasi->qty_given,
-            ], 422);
+            return $request->wantsJson() 
+                ? response()->json(['error' => 'Jumlah terjual melebihi stok yang dibawa.'], 422) 
+                : back()->with('error', 'Jumlah terjual melebihi stok yang dibawa.');
         }
 
-        // Cek duplikat per alokasi (bukan per hari), supaya multi-produk bisa
         $sudahLapor = DailyReport::where('stock_allocation_id', $alokasi->id)->exists();
         if ($sudahLapor) {
-            return response()->json(['message' => 'Produk ini sudah dilaporkan untuk tanggal tersebut.'], 422);
+            return $request->wantsJson() 
+                ? response()->json(['error' => 'Produk ini sudah dilaporkan untuk tanggal tersebut.'], 422) 
+                : back()->with('error', 'Produk ini sudah dilaporkan untuk tanggal tersebut.');
         }
 
         $qtySold      = $request->qty_sold;
         $qtyReturned  = $alokasi->qty_given - $qtySold;
         $totalDeposit = $qtySold * $alokasi->product->price;
 
-        $laporan = DailyReport::create([
+        $report = DailyReport::create([
             'user_id'             => $penjual->id,
             'stock_allocation_id' => $alokasi->id,
             'date'                => $alokasi->date,
@@ -54,71 +53,58 @@ class LaporJualanController extends Controller
             'status'              => 'pending',
         ]);
 
-        return response()->json([
-            'message'       => 'Laporan berhasil disimpan.',
-            'produk'        => $alokasi->product->name,
-            'qty_sold'      => $qtySold,
-            'qty_returned'  => $qtyReturned,
-            'total_deposit' => 'Rp ' . number_format($totalDeposit, 0, ',', '.'),
-            'data'          => $laporan,
-        ], 201);
+        return $request->wantsJson() 
+            ? response()->json(['message' => 'Laporan berhasil disimpan.', 'data' => $report], 201) 
+            : back()->with('success', 'Laporan berhasil disimpan.');
     }
 
-    /**
-     * Penjual lihat riwayat laporan jualannya sendiri.
-     */
-    public function riwayat()
+    public function riwayat(Request $request)
     {
-        $data = DailyReport::where('user_id', Auth::user()->id)
+        $reports = DailyReport::where('user_id', Auth::user()->id)
                     ->orderBy('date', 'desc')
                     ->get();
 
-        return response()->json($data);
+        if ($request->wantsJson()) {
+            return response()->json($reports);
+        }
+
+        // SESUAIKAN: Mengarah ke folder Resourceful penjual yang baru
+        return view('penjual.laporan.index', ['reports' => $reports]);
     }
 
     // =========================================================
     // BAGIAN ADMIN
     // =========================================================
 
-    /**
-     * Admin lihat semua laporan (bisa filter by tanggal / penjual).
-     */
     public function indexAdmin(Request $request)
     {
-        $query = DailyReport::with('user');
+        $query = DailyReport::with(['user', 'stockAllocation.product']);
 
-        // Filter by tanggal
         if ($request->has('date')) {
             $query->where('date', $request->date);
         }
-
-        // Filter by penjual
         if ($request->has('user_id')) {
             $query->where('user_id', $request->user_id);
         }
-
-        // Filter by status
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
 
-        $data = $query->orderBy('date', 'desc')->get();
+        $reports = $query->orderBy('date', 'desc')->get();
 
-        return response()->json($data);
+        if ($request->wantsJson()) {
+            return response()->json($reports);
+        }
+
+        // SESUAIKAN: Mengarah ke folder Resourceful admin yang baru
+        return view('admin.laporan.index', ['reports' => $reports]);
     }
 
-    /**
-     * Admin lihat detail satu laporan.
-     */
     public function showAdmin(DailyReport $report)
     {
         return response()->json($report->load('user'));
     }
 
-    /**
-     * Admin edit laporan jika ada kesalahan input.
-     * Sistem otomatis hitung ulang qty_returned & total_deposit.
-     */
     public function update(Request $request, DailyReport $report)
     {
         $request->validate([
@@ -126,25 +112,22 @@ class LaporJualanController extends Controller
             'date'     => 'sometimes|date',
         ]);
 
-        // Ambil alokasi stok berdasarkan user & tanggal laporan
         $alokasi = StockAllocation::where('user_id', $report->user_id)
                         ->where('date', $report->date)
                         ->first();
 
         if (!$alokasi) {
-            return response()->json([
-                'message' => 'Data alokasi stok untuk laporan ini tidak ditemukan.'
-            ], 404);
+            return $request->wantsJson() 
+                ? response()->json(['error' => 'Data alokasi tidak ditemukan.'], 404) 
+                : back()->with('error', 'Data alokasi stok untuk laporan ini tidak ditemukan.');
         }
 
         if ($request->qty_sold > $alokasi->qty_given) {
-            return response()->json([
-                'message'     => 'Jumlah terjual melebihi stok yang dibawa.',
-                'stok_dibawa' => $alokasi->qty_given,
-            ], 422);
+            return $request->wantsJson() 
+                ? response()->json(['error' => 'Melebihi stok dibawa.'], 422) 
+                : back()->with('error', 'Jumlah terjual melebihi stok yang dibawa.');
         }
 
-        // KALKULASI ULANG OTOMATIS
         $qtySold      = $request->qty_sold;
         $qtyReturned  = $alokasi->qty_given - $qtySold;
         $totalDeposit = $qtySold * $alokasi->product->price;
@@ -155,18 +138,11 @@ class LaporJualanController extends Controller
             'total_deposit' => $totalDeposit,
         ]);
 
-        return response()->json([
-            'message'       => 'Laporan berhasil diperbarui.',
-            'qty_sold'      => $qtySold,
-            'qty_returned'  => $qtyReturned,
-            'total_deposit' => 'Rp ' . number_format($totalDeposit, 0, ',', '.'),
-            'data'          => $report,
-        ]);
+        return $request->wantsJson() 
+            ? response()->json(['message' => 'Laporan diperbarui.', 'data' => $report]) 
+            : back()->with('success', 'Laporan berhasil diperbarui.');
     }
 
-    /**
-     * Admin ubah status laporan (pending → accepted).
-     */
     public function updateStatus(Request $request, DailyReport $report)
     {
         $request->validate([
@@ -175,21 +151,17 @@ class LaporJualanController extends Controller
 
         $report->update(['status' => $request->status]);
 
-        return response()->json([
-            'message' => 'Status laporan berhasil diubah.',
-            'data'    => $report,
-        ]);
+        return $request->wantsJson() 
+            ? response()->json(['message' => 'Status diubah.', 'data' => $report]) 
+            : back()->with('success', 'Status laporan berhasil diubah.');
     }
 
-    /**
-     * Admin hapus laporan jika ada kesalahan atau data duplikat.
-     */
-    public function destroy(DailyReport $report)
+    public function destroy(Request $request, DailyReport $report)
     {
         $report->delete();
 
-        return response()->json([
-            'message' => 'Laporan berhasil dihapus.',
-        ]);
+        return $request->wantsJson() 
+            ? response()->json(['message' => 'Laporan dihapus.']) 
+            : back()->with('success', 'Laporan berhasil dihapus.');
     }
 }

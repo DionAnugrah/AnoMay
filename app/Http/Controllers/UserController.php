@@ -9,38 +9,22 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    /**
-     * Tampilkan semua penjual.
-     * GET /admin/users
-     */
     public function index()
     {
-        $users = User::where('role', 'penjual')
-            ->select('id', 'name', 'username', 'role', 'created_at')
-            ->orderBy('name')
-            ->get();
-
-        return response()->json([
-            'data' => $users,
-        ]);
+        $users = User::where('role', 'penjual')->get();
+        return view('admin.users.index', compact('users'));
     }
 
-    /**
-     * Tampilkan detail satu penjual.
-     * GET /admin/users/{id}
-     */
-    public function show(User $user)
+    public function create()
     {
-        return response()->json([
-            'data' => $user->only('id', 'name', 'username', 'role', 'created_at'),
-        ]);
+        return view('admin.users.create');
     }
 
-    /**
-     * Tambah penjual baru.
-     * POST /admin/users
-     * Body: { "name": "...", "username": "...", "password": "...", "role": "penjual" }
-     */
+    public function show(\App\Models\User $user)
+    {
+        return response()->json(['data' => $user->only('id', 'name', 'username', 'role', 'created_at')]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -50,63 +34,49 @@ class UserController extends Controller
             'role'     => ['required', Rule::in(['admin', 'boss', 'penjual'])],
         ]);
 
-        $user = User::create([
+        User::create([
             'name'     => $validated['name'],
             'username' => $validated['username'],
             'password' => Hash::make($validated['password']),
             'role'     => $validated['role'],
         ]);
 
-        return response()->json([
-            'message' => 'User berhasil ditambahkan.',
-            'data'    => $user->only('id', 'name', 'username', 'role', 'created_at'),
-        ], 201);
+        return redirect('/admin/users')->with('success', 'Akun berhasil ditambahkan.');
     }
 
-    /**
-     * Edit data penjual.
-     * PUT /admin/users/{id}
-     * Body: { "name": "...", "username": "...", "password": "..." } — semua opsional
-     */
+    public function edit(User $user)
+    {
+        return view('admin.users.edit', compact('user'));
+    }
+
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
             'name'     => ['sometimes', 'string', 'max:255'],
             'username' => ['sometimes', 'string', 'max:255', Rule::unique('users', 'username')->ignore($user->id)],
-            'password' => ['sometimes', 'string', 'min:8'],
+            'password' => ['nullable', 'string', 'min:8'],
             'role'     => ['sometimes', Rule::in(['admin', 'boss', 'penjual'])],
         ]);
 
-        // Hash password baru kalau diisi
-        if (isset($validated['password'])) {
+        if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
         }
 
         $user->update($validated);
 
-        return response()->json([
-            'message' => 'User berhasil diupdate.',
-            'data'    => $user->fresh()->only('id', 'name', 'username', 'role', 'created_at'),
-        ]);
+        return redirect('/admin/users')->with('success', 'Akun berhasil diperbarui.');
     }
 
-    /**
-     * Hapus penjual.
-     * DELETE /admin/users/{id}
-     */
     public function destroy(User $user)
     {
-        // Cegah admin hapus dirinya sendiri
         if ($user->id === auth()->user()->id) {
-            return response()->json([
-                'message' => 'Tidak bisa menghapus akun sendiri.',
-            ], 422);
+            return back()->with('error', 'Tidak bisa menghapus akun sendiri.');
         }
 
         $user->delete();
 
-        return response()->json([
-            'message' => 'User berhasil dihapus.',
-        ]);
+        return back()->with('success', 'Akun berhasil dihapus.');
     }
 }

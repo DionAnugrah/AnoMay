@@ -10,7 +10,6 @@ class AuthController extends Controller
     /**
      * Login penjual/admin/boss via username & password.
      * POST /login
-     * Body: { "username": "...", "password": "..." }
      */
     public function login(Request $request)
     {
@@ -19,10 +18,9 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($credentials, remember: false)) {
-            return response()->json([
-                'message' => 'Username atau password salah.',
-            ], 401);
+        // 1. JIKA GAGAL: Lempar kembali ke halaman login membawa pesan error
+        if (! Auth::attempt($credentials, $request->has('remember'))) {
+            return back()->with('error', 'Username atau password salah.');
         }
 
         // Regenerate session agar aman dari session fixation
@@ -30,14 +28,16 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        return response()->json([
-            'message' => 'Login berhasil.',
-            'user' => [
-                'id'   => $user->id,
-                'name' => $user->name,
-                'role' => $user->role,
-            ],
-        ]);
+        // 2. JIKA BERHASIL: Arahkan (redirect) ke halaman dashboard masing-masing role
+        if ($user->role === 'admin') {
+            return redirect('/admin/dashboard');
+        } elseif ($user->role === 'penjual') {
+            return redirect('/penjual/dashboard');
+        } elseif ($user->role === 'boss') {
+            return redirect('/boss/dashboard');
+        }
+
+        return redirect('/');
     }
 
     /**

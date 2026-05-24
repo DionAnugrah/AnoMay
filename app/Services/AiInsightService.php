@@ -44,22 +44,22 @@ class AiInsightService
         }
 
         return "
-            Kamu adalah analis bisnis untuk usaha somay keliling.
-            Berikut rekap penjualan hari ini ({$rekap['date']}):
+        Kamu adalah analis bisnis untuk usaha somay keliling.
+        Berikut rekap penjualan hari ini ({$rekap['date']}):
 
-            Total seluruh penjual  : {$rekap['total_qty_sold']} pcs
-            Total setoran hari ini : Rp {$rekap['total_deposit']}
+        Total seluruh penjual  : {$rekap['total_qty_sold']} pcs
+        Total setoran hari ini : Rp {$rekap['total_deposit']}
 
-            Detail per penjual:
-            {$detail}
+        Detail per penjual:
+        {$detail}
 
-            Berikan:
-            1. Analisa singkat performa hari ini (2-3 kalimat)
-            2. Prediksi jualan besok berdasarkan tren
-            3. Peringatan jika ada penjual yang performanya rendah
-            4. Saran actionable untuk Owner
-
-            Jawab dalam Bahasa Indonesia, singkat dan jelas.
+        Balas HANYA dengan JSON valid berikut, tanpa teks lain, tanpa markdown, tanpa backtick:
+        {
+            \"analisa\": \"ringkasan performa hari ini 2-3 kalimat\",
+            \"prediksi\": \"prediksi jualan besok berdasarkan tren\",
+            \"peringatan\": [\"peringatan 1\", \"peringatan 2\"],
+            \"saran\": [\"saran 1\", \"saran 2\", \"saran 3\"]
+        }
         ";
     }
 
@@ -69,21 +69,21 @@ class AiInsightService
     public function buildPromptBulanan(array $rekap): string
     {
         return "
-            Kamu adalah analis bisnis untuk usaha somay keliling.
-            Berikut rekap penjualan bulan {$rekap['bulan']}/{$rekap['tahun']}:
+        Kamu adalah analis bisnis untuk usaha somay keliling.
+        Berikut rekap penjualan bulan {$rekap['bulan']}/{$rekap['tahun']}:
 
-            Total terjual  : {$rekap['total_qty_sold']} pcs
-            Total setoran  : Rp {$rekap['total_deposit']}
-            Hari aktif     : {$rekap['hari_aktif']} hari
-            Rata-rata/hari : {$rekap['rata_rata']} pcs
+        Total terjual  : {$rekap['total_qty_sold']} pcs
+        Total setoran  : Rp {$rekap['total_deposit']}
+        Hari aktif     : {$rekap['hari_aktif']} hari
+        Rata-rata/hari : {$rekap['rata_rata']} pcs
 
-            Berikan:
-            1. Analisa performa bulan ini
-            2. Tren penjualan (naik/turun dibanding ekspektasi)
-            3. Rekomendasi strategi untuk bulan depan
-            4. Penjual yang perlu diperhatikan
-
-            Jawab dalam Bahasa Indonesia, singkat dan jelas.
+        Balas HANYA dengan JSON valid berikut, tanpa teks lain, tanpa markdown, tanpa backtick:
+        {
+            \"analisa\": \"analisa performa bulan ini 2-3 kalimat\",
+            \"prediksi\": \"tren penjualan naik atau turun dan alasannya\",
+            \"peringatan\": [\"peringatan 1\", \"peringatan 2\"],
+            \"saran\": [\"saran 1\", \"saran 2\", \"saran 3\"]
+        }
         ";
     }
 }

@@ -8,35 +8,17 @@ use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
-    /**
-     * Tampilkan semua produk.
-     * GET /admin/products
-     */
     public function index()
     {
-        $products = Product::orderBy('name')->get();
-
-        return response()->json([
-            'data' => $products,
-        ]);
+        $products = \App\Models\Product::all();
+        return view('admin.products.index', compact('products'));
     }
 
-    /**
-     * Tampilkan detail satu produk.
-     * GET /admin/products/{id}
-     */
-    public function show(Product $product)
+    public function create()
     {
-        return response()->json([
-            'data' => $product,
-        ]);
+        return view('admin.products.create');
     }
 
-    /**
-     * Tambah produk baru.
-     * POST /admin/products
-     * Body: { "name": "Somay Campur", "price": 2000 }
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -44,19 +26,16 @@ class ProductController extends Controller
             'price' => ['required', 'integer', 'min:0'],
         ]);
 
-        $product = Product::create($validated);
+        Product::create($validated);
 
-        return response()->json([
-            'message' => 'Produk berhasil ditambahkan.',
-            'data'    => $product,
-        ], 201);
+        return redirect('/admin/products')->with('success', 'Produk berhasil ditambahkan.');
     }
 
-    /**
-     * Edit produk (nama/harga).
-     * PUT /admin/products/{id}
-     * Body: { "name": "...", "price": 3000 } — semua opsional
-     */
+    public function edit(Product $product)
+    {
+        return view('admin.products.edit', compact('product'));
+    }
+
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
@@ -66,29 +45,17 @@ class ProductController extends Controller
 
         $product->update($validated);
 
-        return response()->json([
-            'message' => 'Produk berhasil diupdate.',
-            'data'    => $product->fresh(),
-        ]);
+        return redirect('/admin/products')->with('success', 'Produk berhasil diperbarui.');
     }
 
-    /**
-     * Hapus produk.
-     * DELETE /admin/products/{id}
-     */
     public function destroy(Product $product)
     {
-        // Cegah hapus produk yang masih punya stok aktif
         if ($product->stockAllocations()->exists()) {
-            return response()->json([
-                'message' => 'Produk tidak bisa dihapus karena masih ada data stok yang terkait.',
-            ], 422);
+            return back()->with('error', 'Produk tidak bisa dihapus karena masih ada data stok terkait.');
         }
 
         $product->delete();
 
-        return response()->json([
-            'message' => 'Produk berhasil dihapus.',
-        ]);
+        return back()->with('success', 'Produk berhasil dihapus.');
     }
 }

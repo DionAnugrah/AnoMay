@@ -17,6 +17,12 @@ class AiInsightController extends Controller
     /**
      * Boss/Admin minta analisa AI untuk penjualan hari tertentu.
      */
+
+    public function index()
+    {
+        return view('boss.ai.ai-insight'); // sesuaikan nama file blade Anda
+    }
+
     public function harianInsight(Request $request)
     {
         $request->validate([
