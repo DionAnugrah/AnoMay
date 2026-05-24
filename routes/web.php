@@ -11,6 +11,7 @@ use App\Http\Controllers\AiInsightController;
 use App\Http\Controllers\StockAllocationController;
 use App\Http\Controllers\BossDashboardController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LiveMapController;
 
 /*
 |--------------------------------------------------------------------------
@@ -86,15 +87,24 @@ Route::middleware('auth.json')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:boss')->prefix('boss')->name('boss.')->group(function () {
-        Route::get('/dashboard',   fn () => response()->json(['area' => 'Boss Dashboard']))->name('dashboard');
+        Route::get('/dashboard',   fn () => view('boss.dashboard'))->name('dashboard');
         Route::get('/sales',       [BossDashboardController::class, 'salesSummary'])->name('sales');
         Route::get('/performance', [BossDashboardController::class, 'performanceSummary'])->name('performance');
         Route::get('/profit',      [BossDashboardController::class, 'profitSummary'])->name('profit');
-        Route::get('/bonus',       fn () => response()->json(['area' => 'Rekomendasi Bonus']))->name('bonus');
+        Route::get('/bonus',       fn () => view('boss.bonus'))->name('bonus');
         
         // AI Insight
+        Route::get('/ai/insight', [AiInsightController::class, 'index'])->name('ai.ai-insight');
         Route::get('/ai/insight/harian',  [AiInsightController::class, 'harianInsight'])->name('ai.harian');
         Route::get('/ai/insight/bulanan', [AiInsightController::class, 'bulananInsight'])->name('ai.bulanan');
+
+        // Live Map Lokasi Penjual
+        Route::get('/live-map',   fn () => view('boss.live-map'))->name('live-map');
+        // Halaman peta live
+        Route::get('/peta', [LiveMapController::class, 'index'])->name('peta');
+ 
+        // API: ambil semua lokasi penjual (dipanggil fetch JS)
+        Route::get('/penjual/lokasi', [LiveMapController::class, 'lokasi'])->name('penjual.lokasi');
     });
 
     /*
@@ -113,6 +123,9 @@ Route::middleware('auth.json')->group(function () {
         Route::post('/lapor-jualan',  [LaporJualanController::class, 'store'])->name('laporan.store');
         Route::get('/riwayat-jualan', [LaporJualanController::class, 'riwayat'])->name('laporan.riwayat');
         Route::get('/my-stock',       [StockAllocationController::class, 'myStock'])->name('stock.mine');
+
+        // API: penjual kirim titik GPS dari HP
+        Route::post('/lokasi', [LiveMapController::class, 'simpanLokasi'])->name('penjual.lokasi.simpan');
     });
 
     Route::post('/logout', function(Request $request) {
