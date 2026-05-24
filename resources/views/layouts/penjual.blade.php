@@ -10,10 +10,22 @@
 
     <header class="bg-anomay-orange text-white p-5 shadow-md sticky top-0 z-10">
         <div class="flex justify-between items-center">
-            <div>
-                <h1 class="font-poppins text-xl font-bold">{{ auth()->user()->name ?? 'Nama Penjual' }}</h1>
-                <p class="text-xs font-medium opacity-90 mt-0.5">Penjual Siomay Keliling</p>
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/50 shadow-sm bg-white shrink-0">
+                    <img 
+                        src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name ?? 'Penjual') }}&background=ffffff&color=ea580c&bold=true" 
+                        alt="Foto Profil" 
+                        class="w-full h-full object-cover"
+                    >
+                </div>
+                
+                <div>
+                    <h1 class="font-poppins text-xl font-bold leading-tight">{{ auth()->user()->name ?? 'Nama Penjual' }}</h1>
+                    <p class="text-xs font-medium text-orange-100 mt-0.5">Penjual Siomay Keliling</p>
+                </div>
             </div>
+            
+            <div></div>
         </div>
     </header>
 
