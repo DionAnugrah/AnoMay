@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Services\SawService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -11,6 +12,23 @@ class BossDashboardController extends Controller
     /**
      * Perhitungan ringkasan penjualan umum (/boss/sales)
      */
+    protected $sawService;
+
+    // Inject SawService ke dalam Controller
+    public function __construct(SawService $sawService)
+    {
+        $this->sawService = $sawService;
+    }
+
+    public function index()
+    {
+        // Hitung peringkat penjual berdasarkan algoritma SAW
+        $sawRankings = $this->sawService->calculateRanking();
+
+        // Kirim data peringkat ke view dashboard boss
+        return view('boss.dashboard', compact('sawRankings'));
+    }
+
     public function salesSummary()
     {
         // Total omset akumulatif dari laporan yang sudah disetujui (accepted)

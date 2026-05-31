@@ -34,6 +34,7 @@ public function up(): void
             $table->text('user_agent')->nullable();
             $table->longText('payload');
             $table->integer('last_activity')->index();
+            $table->timestamp('last_active_at')->nullable();
         });
     }
     /**

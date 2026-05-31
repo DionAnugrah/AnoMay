@@ -192,7 +192,7 @@
 
     <div class="section-label">Analitik Performa</div>
     <div class="charts-grid">
-        <div class="chart-card full">
+        {{-- <div class="chart-card full">
             <div class="chart-title">Ranking Penjual</div>
             <div class="chart-sub">Berdasarkan total setoran keseluruhan</div>
             <div style="overflow-x:auto">
@@ -207,7 +207,47 @@
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div> --}}
+        <div class="chart-card full">
+    <div class="chart-title">🏆 Peringkat Performa Penjual (Metode SAW)</div>
+    <div class="chart-sub">Peringkat keputusan berdasarkan kriteria akumulasi penjualan, sisa stok, dan setoran</div>
+    <div style="overflow-x:auto">
+        <table class="rank-table">
+            <thead>
+                <tr>
+                    <th style="text-align: center; width: 50px;">#</th>
+                    <th>Nama Penjual</th>
+                    <th style="text-align: center;">Total Jual</th>
+                    <th style="text-align: center;">Sisa Stok</th>
+                    <th style="text-align: center;">Total Setoran</th>
+                    <th style="text-align: center; background: rgba(255,127,17,0.05); color: #ff7f11;">Skor SAW (V)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($sawRankings as $index => $rank)
+                    <tr>
+                        <td style="text-align: center;">
+                            <span class="rank-num {{ $index == 0 ? 'rank-1' : ($index == 1 ? 'rank-2' : ($index == 2 ? 'rank-3' : '')) }}">
+                                @if($index == 0) 🥇 @elif($index == 1) 🥈 @elif($index == 2) 🥉 @else {{ $index + 1 }} @endif
+                            </span>
+                        </td>
+                        <td class="nama-cell">{{ $rank['name'] }}</td>
+                        <td style="text-align: center;">{{ number_format($rank['detail_aktual']['sales']) }} porsi</td>
+                        <td style="text-align: center;">{{ $rank['detail_aktual']['stock'] }} pcs</td>
+                        <td class="omset-cell" style="text-align: center;">Rp {{ number_format($rank['detail_aktual']['deposit'], 0, ',', '.') }}</td>
+                        <td style="text-align: center; font-weight: 700; background: rgba(255,127,17,0.05); color: #ff7f11;">
+                            {{ $rank['skor'] }}
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6"><div class="error-state">Belum ada data laporan harian penjual untuk dihitung.</div></td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
         <div class="chart-card full">
             <div class="chart-title">Performa Setoran per Penjual</div>
             <div class="chart-sub">Visualisasi total setoran semua penjual</div>
@@ -274,30 +314,30 @@
         } catch(e) { console.error('Gagal load profit:', e); }
     }
 
-    async function loadPerformance() {
-        try {
-            const res = await fetch('/boss/performance', { headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } });
-            const json = await res.json();
-            if (json.status !== 'success') return;
-            const penjual = json.data;
-            document.getElementById('m-penjual').textContent = penjual.length + ' orang';
-            const maxSetoran = Math.max(...penjual.map(p => p.total_setoran));
-            const tbody = document.getElementById('rank-tbody');
-            if (penjual.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5"><div class="error-state">Belum ada data penjual.</div></td></tr>';
-            } else {
-                tbody.innerHTML = penjual.map((p, i) => {
-                    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
-                    const porsi = maxSetoran > 0 ? Math.round((p.total_setoran / maxSetoran) * 100) : 0;
-                    return `<tr><td><span class="rank-num ${rankClass}">${i+1}</span></td><td class="nama-cell">${p.name}</td><td class="omset-cell">${rupiahFull(p.total_setoran)}</td><td>${p.total_porsi_terjual.toLocaleString('id-ID')} pcs</td><td style="min-width:90px"><div class="bar-mini" style="width:${porsi}%"></div></td></tr>`;
-                }).join('');
-            }
-            buildBarChart(penjual);
-        } catch(e) {
-            console.error('Gagal load performance:', e);
-            document.getElementById('rank-tbody').innerHTML = '<tr><td colspan="5"><div class="error-state">Gagal memuat data.</div></td></tr>';
-        }
-    }
+    // async function loadPerformance() {
+    //     try {
+    //         const res = await fetch('/boss/performance', { headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } });
+    //         const json = await res.json();
+    //         if (json.status !== 'success') return;
+    //         const penjual = json.data;
+    //         document.getElementById('m-penjual').textContent = penjual.length + ' orang';
+    //         const maxSetoran = Math.max(...penjual.map(p => p.total_setoran));
+    //         const tbody = document.getElementById('rank-tbody');
+    //         if (penjual.length === 0) {
+    //             tbody.innerHTML = '<tr><td colspan="5"><div class="error-state">Belum ada data penjual.</div></td></tr>';
+    //         } else {
+    //             tbody.innerHTML = penjual.map((p, i) => {
+    //                 const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+    //                 const porsi = maxSetoran > 0 ? Math.round((p.total_setoran / maxSetoran) * 100) : 0;
+    //                 return `<tr><td><span class="rank-num ${rankClass}">${i+1}</span></td><td class="nama-cell">${p.name}</td><td class="omset-cell">${rupiahFull(p.total_setoran)}</td><td>${p.total_porsi_terjual.toLocaleString('id-ID')} pcs</td><td style="min-width:90px"><div class="bar-mini" style="width:${porsi}%"></div></td></tr>`;
+    //             }).join('');
+    //         }
+    //         buildBarChart(penjual);
+    //     } catch(e) {
+    //         console.error('Gagal load performance:', e);
+    //         document.getElementById('rank-tbody').innerHTML = '<tr><td colspan="5"><div class="error-state">Gagal memuat data.</div></td></tr>';
+    //     }
+    // }
 
     async function loadLiveMap() {
         try {
