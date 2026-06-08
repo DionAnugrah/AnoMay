@@ -9,6 +9,7 @@ use App\Http\Controllers\LaporJualanController;
 use App\Http\Controllers\AiInsightController;
 use App\Http\Controllers\StockAllocationController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\BossDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -85,13 +86,14 @@ Route::middleware('auth.json')->group(function () {
     */
     Route::middleware('role:boss')->prefix('boss')->name('boss.')->group(function () {
 
-        Route::get('/dashboard',   [DashboardController::class, 'bossDashboard'])->name('dashboard');
+        Route::get('/dashboard',   [BossDashboardController::class, 'index'])->name('dashboard');
         Route::get('/live-map',    fn () => view('boss.live-map'))->name('live-map');
         Route::get('/penjual/lokasi', [LocationController::class, 'latest'])->name('penjual.lokasi');
-        Route::get('/sales',       [DashboardController::class, 'sales'])->name('sales');
-        Route::get('/performance', [DashboardController::class, 'performance'])->name('performance');
-        Route::get('/profit',      [DashboardController::class, 'profit'])->name('profit');
+        Route::get('/sales',       [BossDashboardController::class, 'salesSummary'])->name('sales');
+        Route::get('/performance', [BossDashboardController::class, 'performanceSummary'])->name('performance');
+        Route::get('/profit',      [BossDashboardController::class, 'profitSummary'])->name('profit');
         Route::get('/bonus',       [DashboardController::class, 'bonus'])->name('bonus');
+        Route::get('/omset-bulanan', [BossDashboardController::class, 'omsetBulanan'])->name('omset.bulanan');
 
         // AI
         Route::get('/ai/insight',         fn () => view('boss.ai.ai-insight'))->name('ai.insight');

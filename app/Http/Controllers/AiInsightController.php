@@ -20,7 +20,7 @@ class AiInsightController extends Controller
 
     public function index()
     {
-        return view('boss.ai.ai-insight'); // sesuaikan nama file blade Anda
+        return view('boss.ai.ai-insight');
     }
 
     public function harianInsight(Request $request)

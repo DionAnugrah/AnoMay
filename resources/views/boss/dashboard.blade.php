@@ -228,7 +228,7 @@
                     <tr>
                         <td style="text-align: center;">
                             <span class="rank-num {{ $index == 0 ? 'rank-1' : ($index == 1 ? 'rank-2' : ($index == 2 ? 'rank-3' : '')) }}">
-                                @if($index == 0) 🥇 @elif($index == 1) 🥈 @elif($index == 2) 🥉 @else {{ $index + 1 }} @endif
+                                @if($index == 0) 🥇 @elseif($index == 1) 🥈 @elseif($index == 2) 🥉 @else {{ $index + 1 }} @endif
                             </span>
                         </td>
                         <td class="nama-cell">{{ $rank['name'] }}</td>
@@ -253,9 +253,9 @@
             <div class="chart-sub">Visualisasi total setoran semua penjual</div>
             <div style="position:relative;width:100%;height:200px"><canvas id="chartPerforma"></canvas></div>
         </div>
-        <div class="chart-card">
-            <div class="chart-title">Penjualan per Produk</div>
-            <div class="chart-sub">Total semua waktu (porsi tiap produk)</div>
+         <div class="chart-card">
+            <div class="chart-title">Tren Omset Bulanan</div>
+            <div class="chart-sub">Total setoran diterima per bulan</div>
             <div style="position:relative;width:100%;height:220px"><canvas id="chartProdukBoss"></canvas></div>
         </div>
         <div class="chart-card">
@@ -267,7 +267,6 @@
 </div>
 
 @push('scripts')
-{{-- script sama persis, tidak ada perubahan --}}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
     let chartPerforma;
@@ -291,14 +290,6 @@
             document.getElementById('m-somay').textContent = d.total_somay_terjual.toLocaleString('id-ID') + ' pcs';
             const now = new Date();
             document.getElementById('m-today-date').textContent = now.toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
-            if (d.per_produk && Object.keys(d.per_produk).length > 0) {
-                const COLORS = ['#ff7f11','#2563eb','#16a34a','#7c3aed','#dc2626','#0891b2','#d97706'];
-                new Chart(document.getElementById('chartProdukBoss'), {
-                    type: 'doughnut',
-                    data: { labels: Object.keys(d.per_produk), datasets: [{ data: Object.values(d.per_produk), backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position:'right', labels:{ font:{ size:11 }, boxWidth:12 } }, tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw} pcs` } } } }
-                });
-            }
         } catch(e) { console.error('Gagal load sales:', e); }
     }
 
@@ -314,30 +305,35 @@
         } catch(e) { console.error('Gagal load profit:', e); }
     }
 
-    // async function loadPerformance() {
-    //     try {
-    //         const res = await fetch('/boss/performance', { headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } });
-    //         const json = await res.json();
-    //         if (json.status !== 'success') return;
-    //         const penjual = json.data;
-    //         document.getElementById('m-penjual').textContent = penjual.length + ' orang';
-    //         const maxSetoran = Math.max(...penjual.map(p => p.total_setoran));
-    //         const tbody = document.getElementById('rank-tbody');
-    //         if (penjual.length === 0) {
-    //             tbody.innerHTML = '<tr><td colspan="5"><div class="error-state">Belum ada data penjual.</div></td></tr>';
-    //         } else {
-    //             tbody.innerHTML = penjual.map((p, i) => {
-    //                 const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
-    //                 const porsi = maxSetoran > 0 ? Math.round((p.total_setoran / maxSetoran) * 100) : 0;
-    //                 return `<tr><td><span class="rank-num ${rankClass}">${i+1}</span></td><td class="nama-cell">${p.name}</td><td class="omset-cell">${rupiahFull(p.total_setoran)}</td><td>${p.total_porsi_terjual.toLocaleString('id-ID')} pcs</td><td style="min-width:90px"><div class="bar-mini" style="width:${porsi}%"></div></td></tr>`;
-    //             }).join('');
-    //         }
-    //         buildBarChart(penjual);
-    //     } catch(e) {
-    //         console.error('Gagal load performance:', e);
-    //         document.getElementById('rank-tbody').innerHTML = '<tr><td colspan="5"><div class="error-state">Gagal memuat data.</div></td></tr>';
-    //     }
-    // }
+    async function loadCharts() {
+        try {
+            const res = await fetch('/boss/performance', { headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } });
+            const json = await res.json();
+            if (json.status !== 'success') return;
+            const penjual = json.data;
+            document.getElementById('m-penjual').textContent = penjual.length + ' orang';
+            buildBarChart(penjual);
+        } catch(e) { console.error('Gagal load charts:', e); }
+    }
+
+    async function loadOmsetBulanan() {
+        try {
+            const res = await fetch('/boss/omset-bulanan', { headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } });
+            const json = await res.json();
+            if (json.status !== 'success') return;
+            const bulanNames = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+            const labels = json.data.map(d => bulanNames[d.bulan] + ' ' + d.tahun);
+            const values = json.data.map(d => d.total);
+            new Chart(document.getElementById('chartProdukBoss'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{ label:'Omset', data: values, borderColor:'#ff7f11', backgroundColor:'rgba(255,127,17,0.1)', borderWidth:2, pointBackgroundColor:'#ff7f11', tension:0.4, fill:true }]
+                },
+                options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: c => ' ' + rupiahFull(c.raw) } } }, scales:{ x:{ grid:{ display:false }, ticks:{ font:{ size:11 }, color:'#9ca3af' } }, y:{ grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ font:{ size:10 }, color:'#9ca3af', callback: v => rupiah(v) } } } }
+            });
+        } catch(e) { console.error('Gagal load omset bulanan:', e); }
+    }
 
     async function loadLiveMap() {
         try {
@@ -385,7 +381,8 @@
         document.getElementById('tgl-now').textContent = now.toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
         loadSales();
         loadProfit();
-        loadPerformance();
+        loadCharts();
+        loadOmsetBulanan();
         loadLiveMap();
         setInterval(loadLiveMap, 30000);
     });
