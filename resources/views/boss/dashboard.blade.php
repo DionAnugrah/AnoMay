@@ -209,7 +209,7 @@
             </div>
         </div> --}}
         <div class="chart-card full">
-    <div class="chart-title">🏆 Peringkat Performa Penjual (Metode SAW)</div>
+    <div class="chart-title">🏆 Peringkat Performa Penjual</div>
     <div class="chart-sub">Peringkat keputusan berdasarkan kriteria akumulasi penjualan, sisa stok, dan setoran</div>
     <div style="overflow-x:auto">
         <table class="rank-table">
@@ -360,7 +360,7 @@
         const colors = ['#ff7f11','#ffab5e','#ffd4a8','#acbfa4','#c9d9b3','#a5b4fc','#86efac','#fca5a5'];
         chartPerforma = new Chart(ctx, {
             type: 'bar',
-            data: { labels: penjual.map(p => p.name.split(' ')[0]), datasets: [{ label:'Total Setoran', data: penjual.map(p => p.total_setoran), backgroundColor: penjual.map((_,i) => colors[i % colors.length]), borderRadius:8, borderSkipped:false }] },
+            data: { labels: penjual.map(p => p.name), datasets: [{ label:'Total Setoran', data: penjual.map(p => p.total_setoran), backgroundColor: penjual.map((_,i) => colors[i % colors.length]), borderRadius:8, borderSkipped:false }] },
             options: { responsive:true, maintainAspectRatio:false, plugins: { legend:{ display:false }, tooltip:{ callbacks:{ label: c => ' ' + rupiahFull(c.raw) } } }, scales: { x:{ grid:{ display:false }, ticks:{ font:{ size:11 }, color:'#9ca3af' } }, y:{ grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ font:{ size:10 }, color:'#9ca3af', callback: v => rupiah(v) } } } }
         });
         const ctxHariIni = document.getElementById('chartHariIni');
@@ -370,7 +370,7 @@
             if (sub) sub.textContent = now.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
             new Chart(ctxHariIni, {
                 type: 'bar',
-                data: { labels: penjual.map(p => p.name.split(' ')[0]), datasets: [{ label:'Terjual (pcs)', data: penjual.map(p => p.total_terjual), backgroundColor: colors, borderRadius:8, borderSkipped:false }] },
+                data: { labels: penjual.map(p => p.name), datasets: [{ label:'Terjual (pcs)', data: penjual.map(p => p.total_terjual), backgroundColor: colors, borderRadius:8, borderSkipped:false }] },
                 options: { responsive:true, maintainAspectRatio:false, plugins: { legend:{ display:false }, tooltip:{ callbacks:{ label: c => ` ${c.raw} pcs` } } }, scales: { x:{ grid:{ display:false }, ticks:{ font:{ size:11 }, color:'#9ca3af' } }, y:{ grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ font:{ size:10 }, color:'#9ca3af' } } } }
             });
         }
